@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LogScan</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
+
+:root {
+–bg:#0d0f12; –surface:#161a1f; –surface2:#1e2430; –border:#2a3040;
+–accent:#f97316; –accent2:#22c55e; –ml:#ffe600; –shopee:#ee4d2d;
+–ali:#ff6a00; –text:#e8eaf0; –muted:#6b7280; –danger:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:‘Barlow Condensed’,sans-serif;background:var(–bg);color:var(–text);-webkit-tap-highlight-color:transparent}
+
+/* ── SETUP BANNER ─────────────────────────────────────────────────────── */
+.setup-banner{background:linear-gradient(135deg,#1e3a5f,#0f2744);border-bottom:3px solid var(–accent);padding:14px 16px;display:none}
+.setup-banner.show{display:block}
+.setup-banner h3{font-size:16px;font-weight:900;color:var(–accent);letter-spacing:1px;margin-bottom:8px}
+.setup-banner p{font-size:13px;color:#94b8d8;line-height:1.5;margin-bottom:8px}
+.setup-banner ol{padding-left:18px;font-size:13px;color:#94b8d8;line-height:2}
+.setup-banner ol li code{background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;font-family:‘Space Mono’,monospace;font-size:12px;color:#fbbf24}
+.setup-banner .close-banner{float:right;background:none;border:1px solid #3a5a8a;color:#94b8d8;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-top:-2px}
+
+/* ── HEADER ────────────────────────────────────────────────────────────── */
+.header{background:var(–surface);border-bottom:2px solid var(–accent);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:var(–accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.header h1{font-size:19px;font-weight:900;letter-spacing:1px;line-height:1}
+.header h1 span{color:var(–accent)}
+.header-right{display:flex;align-items:center;gap:10px}
+.header-date{font-family:‘Space Mono’,monospace;font-size:10px;color:var(–muted);text-align:right;white-space:pre}
+.help-btn{background:none;border:1px solid var(–border);border-radius:4px;color:var(–muted);padding:4px 8px;cursor:pointer;font-size:11px;font-family:‘Space Mono’,monospace}
+
+/* ── LAYOUT ────────────────────────────────────────────────────────────── */
+.main{padding:10px;max-width:600px;margin:0 auto}
+.card{background:var(–surface);border:1px solid var(–border);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.card-header{padding:9px 13px;background:var(–surface2);border-bottom:1px solid var(–border);display:flex;align-items:center;gap:8px}
+.card-header h2{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(–muted)}
+.card-body{padding:12px}
+
+/* ── DRIVER SELECT ──────────────────────────────────────────────────────── */
+select,input[type=“text”]{width:100%;background:var(–bg);border:1px solid var(–border);border-radius:6px;color:var(–text);font-family:‘Barlow Condensed’,sans-serif;font-size:18px;font-weight:600;padding:9px 11px;appearance:none;outline:none;transition:border-color .2s}
+select:focus,input[type=“text”]:focus{border-color:var(–accent)}
+.select-wrap{position:relative}
+.select-wrap::after{content:‘▾’;position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(–accent);pointer-events:none;font-size:15px}
+
+/* ── TABS ───────────────────────────────────────────────────────────────── */
+.tabs{display:flex;border-bottom:1px solid var(–border);background:var(–surface2);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 12px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;color:var(–muted);border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s;flex-shrink:0}
+.tab.active{color:var(–accent);border-bottom-color:var(–accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── SCANNER VIEW ───────────────────────────────────────────────────────── */
+.scanner-wrap{position:relative}
+
+/* Override html5-qrcode default styles */
+#qr-reader{border:none !important;background:#000 !important;border-radius:8px;overflow:hidden}
+#qr-reader video{border-radius:8px}
+#qr-reader__scan_region{background:transparent !important}
+#qr-reader__scan_region img{display:none !important} /* hide default icon */
+#qr-reader__dashboard{background:var(–surface2) !important;border-top:1px solid var(–border) !important;padding:8px !important}
+#qr-reader__dashboard button{background:var(–accent) !important;color:#000 !important;font-weight:700 !important;border:none !important;border-radius:6px !important;padding:8px 16px !important;font-family:‘Barlow Condensed’,sans-serif !important;font-size:15px !important;cursor:pointer !important}
+#qr-reader__dashboard select{background:var(–bg) !important;color:var(–text) !important;border:1px solid var(–border) !important;border-radius:5px !important;padding:6px !important;font-size:13px !important}
+#qr-reader__status_span{color:var(–muted) !important;font-size:12px !important;font-family:‘Space Mono’,monospace !important}
+#qr-reader__camera_permission_button{background:var(–accent) !important;color:#000 !important;font-weight:900 !important;font-size:16px !important;padding:12px 24px !important;border-radius:8px !important;border:none !important;cursor:pointer !important;font-family:‘Barlow Condensed’,sans-serif !important;width:100% !important}
+#qr-reader__filescan_input{display:none !important}
+#qr-reader__header_message{color:var(–text) !important;font-family:‘Space Mono’,monospace !important;font-size:11px !important}
+
+/* Scan success flash overlay */
+.scan-flash{
+position:absolute;inset:0;border-radius:8px;
+pointer-events:none;z-index:10;
+opacity:0;
+}
+.scan-flash.ok{animation:flashGreen .35s ease}
+.scan-flash.dup{animation:flashYellow .35s ease}
+@keyframes flashGreen{0%{background:rgba(34,197,94,.5);opacity:1}100%{opacity:0}}
+@keyframes flashYellow{0%{background:rgba(249,115,22,.4);opacity:1}100%{opacity:0}}
+
+/* Status bar below scanner */
+.scan-status{
+display:flex;align-items:center;gap:8px;
+padding:9px 12px;
+background:var(–surface2);border-top:1px solid var(–border);
+font-size:14px;font-weight:700;min-height:42px;
+}
+.scan-status .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(–muted)}
+.scan-status.scanning .dot{background:var(–accent2);animation:pulse 1.4s ease infinite}
+.scan-status.scanned .dot{background:var(–accent2)}
+.scan-status.dup .dot{background:var(–accent)}
+.scan-status.err .dot{background:var(–danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.scan-status-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scan-counter-badge{background:var(–accent);color:#000;font-family:‘Space Mono’,monospace;font-size:13px;font-weight:700;padding:3px 8px;border-radius:4px;flex-shrink:0}
+
+/* Manual input */
+.manual-row{display:flex;gap:8px;margin-top:10px}
+.manual-row input{font-size:15px;font-weight:400}
+
+/* ── COUNTERS ───────────────────────────────────────────────────────────── */
+.counters-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.counter-box{background:var(–bg);border:1px solid var(–border);border-radius:8px;padding:12px;text-align:center;position:relative;overflow:hidden;transition:transform .1s}
+.counter-box::before{content:’’;position:absolute;top:0;left:0;right:0;height:3px}
+.counter-box.ml::before{background:var(–ml)} .counter-box.shopee::before{background:var(–shopee)} .counter-box.ali::before{background:var(–ali)} .counter-box.other::before{background:var(–muted)}
+.counter-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(–muted);margin-bottom:4px}
+.counter-num{font-family:‘Space Mono’,monospace;font-size:44px;font-weight:700;line-height:1}
+.counter-box.ml .counter-num{color:var(–ml)} .counter-box.shopee .counter-num{color:var(–shopee)} .counter-box.ali .counter-num{color:var(–ali)} .counter-box.other .counter-num{color:var(–muted)}
+.counter-box.bump{animation:bump .25s ease}
+@keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+.total-box{background:var(–surface2);border:1px solid var(–accent);border-radius:8px;padding:11px 15px;display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.total-label{font-size:14px;font-weight:700;letter-spacing:1px;color:var(–muted);text-transform:uppercase}
+.total-num{font-family:‘Space Mono’,monospace;font-size:36px;color:var(–accent)}
+
+/* List */
+.scanned-list{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.scanned-item{background:var(–bg);border:1px solid var(–border);border-radius:6px;padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:12px;animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0}
+.badge-ml{background:var(–ml);color:#000} .badge-shopee{background:var(–shopee);color:#fff} .badge-ali{background:var(–ali);color:#fff} .badge-other{background:var(–muted);color:#fff}
+.item-code{font-family:‘Space Mono’,monospace;font-size:10px;color:var(–muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-del{background:none;border:none;color:var(–danger);cursor:pointer;font-size:15px;padding:2px 5px}
+.item-time{font-size:10px;color:var(–border);white-space:nowrap}
+
+/* ── PHOTOS ─────────────────────────────────────────────────────────────── */
+.photos-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+.photo-wrap{position:relative}
+.photo-thumb{aspect-ratio:1;border-radius:6px;object-fit:cover;border:1px solid var(–border);width:100%;display:block;cursor:pointer}
+.photo-del-btn{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.75);border:none;border-radius:50%;width:22px;height:22px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.photo-slot{aspect-ratio:1;border-radius:6px;border:1px dashed var(–border);display:flex;align-items:center;justify-content:center;color:var(–muted);font-size:22px;cursor:pointer}
+.photo-slot.live{border-color:var(–accent);color:var(–accent)}
+.photo-count{font-size:11px;color:var(–muted);text-align:right;margin-bottom:5px}
+
+/* ── EXPORT ─────────────────────────────────────────────────────────────── */
+.summary-box{background:var(–bg);border:1px solid var(–border);border-radius:8px;padding:12px;font-family:‘Space Mono’,monospace;font-size:12px;white-space:pre-wrap;color:var(–text);line-height:1.7}
+
+/* ── SETTINGS ───────────────────────────────────────────────────────────── */
+.driver-tag{display:inline-flex;align-items:center;gap:5px;background:var(–surface2);border:1px solid var(–border);border-radius:20px;padding:4px 9px;font-size:12px;margin:3px}
+.driver-tag button{background:none;border:none;color:var(–danger);cursor:pointer;font-size:13px;padding:0}
+.add-driver-row{display:flex;gap:8px;margin-top:8px}
+.add-driver-row input{font-size:15px}
+
+/* ── BUTTONS ────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:6px;font-family:‘Barlow Condensed’,sans-serif;font-size:15px;font-weight:700;letter-spacing:.5px;border:none;cursor:pointer;transition:all .15s;text-transform:uppercase}
+.btn-primary{background:var(–accent);color:#000} .btn-success{background:var(–accent2);color:#000} .btn-danger{background:var(–danger);color:#fff}
+.btn-ghost{background:var(–surface2);color:var(–text);border:1px solid var(–border)}
+.btn-ghost:active{border-color:var(–accent);color:var(–accent)}
+.btn-whatsapp{background:#25D366;color:#fff} .btn-full{width:100%}
+.btn:disabled{opacity:.4;pointer-events:none}
+
+.separator{height:1px;background:var(–border);margin:10px 0}
+.label-small{font-size:11px;color:var(–muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.row{display:flex;gap:8px}
+.empty-state{text-align:center;padding:18px;color:var(–muted);font-size:13px}
+.empty-icon{font-size:30px;margin-bottom:6px}
+
+/* ── BEEP INDICATOR ─────────────────────────────────────────────────────── */
+.beep-indicator{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);width:85px;height:85px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;pointer-events:none;z-index:999}
+.beep-indicator.show{animation:beepPop .45s ease forwards}
+@keyframes beepPop{0%{transform:translate(-50%,-50%) scale(0);opacity:1}40%{transform:translate(-50%,-50%) scale(1.25);opacity:1}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
+.beep-ml{background:rgba(255,230,0,.9)} .beep-shopee{background:rgba(238,77,45,.9)} .beep-ali{background:rgba(255,106,0,.9)} .beep-other{background:rgba(107,114,128,.9)}
+
+::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-track{background:var(–bg)} ::-webkit-scrollbar-thumb{background:var(–border);border-radius:2px}
+</style>
+
+</head>
+<body>
+
+<!-- ── SETUP BANNER ──────────────────────────────────────────────────────── -->
+
+<div class="setup-banner" id="setupBanner">
+  <button class="close-banner" onclick="closeBanner()">✕ Fechar</button>
+  <h3>⚠️ ATENÇÃO — HOSPEDAGEM HTTPS NECESSÁRIA</h3>
+  <p>O scanner contínuo de câmera <strong>exige HTTPS</strong> para funcionar no iPhone. Siga os passos abaixo <strong>uma única vez</strong> para hospedar gratuitamente:</p>
+  <ol>
+    <li>Crie conta grátis em <strong>github.com</strong></li>
+    <li>Crie repositório novo → chame de <code>logscan</code></li>
+    <li>Faça upload deste arquivo <code>scanner-logistica.html</code></li>
+    <li>Renomeie o arquivo para <code>index.html</code></li>
+    <li>Vá em <strong>Settings → Pages → Branch: main → Save</strong></li>
+    <li>Acesse <code>seuusuario.github.io/logscan</code> no Safari do iPhone</li>
+    <li>Permita o acesso à câmera quando solicitado — <strong>uma vez só!</strong></li>
+  </ol>
+  <p style="color:#f97316;margin-top:4px">💡 Depois de configurado, o scanner funciona offline automaticamente (exceto o carregamento inicial).</p>
+</div>
+
+<!-- ── HEADER ────────────────────────────────────────────────────────────── -->
+
+<div class="header">
+  <div class="header-logo">
+    <div class="logo-icon">📦</div>
+    <div>
+      <h1>LOG<span>SCAN</span></h1>
+      <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace">SCANNER CONTÍNUO</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="help-btn" onclick="document.getElementById('setupBanner').classList.toggle('show')">? HTTPS</button>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ENTREGADOR -->
+
+  <div class="card">
+    <div class="card-header"><span>🚚</span><h2>Entregador</h2></div>
+    <div class="card-body">
+      <div class="select-wrap">
+        <select id="driverSelect"><option value="">— Selecione o entregador —</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+
+  <div class="card" style="overflow:visible">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('scanner')">📷 Scanner</div>
+      <div class="tab" onclick="switchTab('count')">📊 Contagem</div>
+      <div class="tab" onclick="switchTab('photos')">🖼 Fotos</div>
+      <div class="tab" onclick="switchTab('export')">📤 Exportar</div>
+      <div class="tab" onclick="switchTab('settings')">⚙️ Config</div>
+    </div>
+
+```
+<!-- ─── SCANNER TAB ─────────────────────────────────────────────────── -->
+<div class="tab-panel active" id="tab-scanner">
+  <div class="scanner-wrap">
+    <div id="qr-reader"></div>
+    <div class="scan-flash" id="scanFlash"></div>
+  </div>
+  <div class="scan-status" id="scanStatus">
+    <div class="dot"></div>
+    <div class="scan-status-text" id="scanStatusText">Inicie o scanner →</div>
+    <div class="scan-counter-badge" id="scanCounterBadge">0</div>
+  </div>
+  <div class="card-body" style="padding-top:10px">
+    <div class="label-small">Código manual (ou cole aqui)</div>
+    <div class="manual-row">
+      <input type="text" id="manualInput" placeholder="Ex: BR2603126305985" onkeydown="if(event.key==='Enter')addManual()">
+      <button class="btn btn-ghost" onclick="addManual()" style="white-space:nowrap;padding:9px 12px">+ Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── COUNT TAB ──────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-count">
+  <div class="card-body">
+    <div class="counters-grid">
+      <div class="counter-box ml" id="box-ml"><div class="counter-label">Mercado Livre</div><div class="counter-num" id="cnt-ml">0</div></div>
+      <div class="counter-box shopee" id="box-shopee"><div class="counter-label">Shopee</div><div class="counter-num" id="cnt-shopee">0</div></div>
+      <div class="counter-box ali" id="box-ali"><div class="counter-label">AliExpress</div><div class="counter-num" id="cnt-ali">0</div></div>
+      <div class="counter-box other" id="box-other"><div class="counter-label">Outros</div><div class="counter-num" id="cnt-other">0</div></div>
+    </div>
+    <div class="total-box"><span class="total-label">Total</span><span class="total-num" id="cnt-total">0</span></div>
+    <div class="separator"></div>
+    <div class="label-small">Histórico da sessão</div>
+    <div class="scanned-list" id="scannedList">
+      <div class="empty-state"><div class="empty-icon">📭</div>Nenhum pacote ainda</div>
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn btn-danger btn-full" onclick="clearAll()" style="font-size:13px">🗑 Limpar tudo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PHOTOS TAB ─────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-photos">
+  <div class="card-body">
+    <div class="photo-count" id="photoCount">0 / 8 fotos</div>
+    <div class="photos-grid" id="photosGrid"></div>
+    <input type="file" id="photoInput" accept="image/*" capture="environment" multiple onchange="addPhotos(this)" style="display:none">
+    <button class="btn btn-ghost btn-full" onclick="document.getElementById('photoInput').click()" id="addPhotoBtn">📸 Tirar / Adicionar foto</button>
+    <div style="margin-top:8px">
+      <button class="btn btn-danger btn-full" onclick="clearPhotos()" style="font-size:13px">🗑 Remover todas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── EXPORT TAB ─────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-export">
+  <div class="card-body">
+    <div class="label-small">Resumo</div>
+    <div class="summary-box" id="summaryBox" style="margin-top:5px;margin-bottom:12px"></div>
+
+    <div class="label-small">WhatsApp (DDI + número)</div>
+    <input type="text" id="waNumber" placeholder="5511999998888" style="margin-top:4px;margin-bottom:10px;font-size:15px">
+    <button class="btn btn-whatsapp btn-full" onclick="exportWhatsApp()" style="margin-bottom:8px;font-size:16px">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Enviar via WhatsApp
+    </button>
+
+    <div class="separator"></div>
+    <div class="label-small">Google Sheets (URL do Web App)</div>
+    <input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:4px;margin-bottom:10px;font-size:12px">
+    <button class="btn btn-success btn-full" onclick="exportSheets()" style="font-size:15px">📊 Enviar para Google Sheets</button>
+    <div id="sheetsStatus" style="margin-top:7px;font-size:13px;text-align:center;color:var(--muted)"></div>
+
+    <div class="separator"></div>
+    <button class="btn btn-ghost btn-full" onclick="exportTxt()" style="font-size:14px">💾 Baixar como .TXT</button>
+  </div>
+</div>
+
+<!-- ─── SETTINGS TAB ────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-settings">
+  <div class="card-body">
+    <div class="label-small">Entregadores cadastrados</div>
+    <div id="driversList" style="margin-top:6px;margin-bottom:4px"></div>
+    <div class="add-driver-row">
+      <input type="text" id="newDriverInput" placeholder="Nome do entregador..." style="font-size:15px">
+      <button class="btn btn-primary" onclick="addDriver()" style="white-space:nowrap">+ Add</button>
+    </div>
+    <div class="separator"></div>
+    <div class="label-small">Scan contínuo — intervalo entre mesmo código</div>
+    <div class="row" style="margin-top:6px;align-items:center;gap:10px">
+      <input type="range" id="refractorySlider" min="1000" max="10000" step="500" value="3000" style="flex:1;accent-color:var(--accent)" oninput="updateRefractory(this.value)">
+      <span id="refractoryLabel" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--accent);white-space:nowrap">3.0s</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">Evita contar o mesmo pacote duas vezes se a câmera demorar a tirar do foco</div>
+    <div class="separator"></div>
+    <div class="label-small">Anti-duplicata global (mesma sessão)</div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:6px;font-size:15px">
+      <input type="checkbox" id="dedupeCheck" checked style="width:18px;height:18px;accent-color:var(--accent)">
+      Bloquear mesmo QR code 2x no dia
+    </label>
+    <div class="separator"></div>
+    <div class="label-small" style="margin-bottom:8px">Padrões de detecção de marketplace</div>
+    <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;line-height:2.2">
+      <div><span style="color:var(--ml)">■ ML</span>  — 20000 · envioflex · mercadolivre · meli</div>
+      <div><span style="color:var(--shopee)">■ Shop</span> — BR+10~15dígitos · shopee</div>
+      <div><span style="color:var(--ali)">■ Ali</span>  — aliexpress · cainiao · AE+dígitos</div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- Beep indicator -->
+
+<div class="beep-indicator" id="beepEl"></div>
+
+<!-- html5-qrcode from cdnjs (reliable CDN) -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let packages = [];
+let photos = [];
+let scannedCodes = new Set();
+let drivers = JSON.parse(localStorage.getItem('lg_drivers') || '["João","Pedro","Carlos","Lucas","Marcos","Rafael"]');
+let html5QrCode = null;
+let scannerRunning = false;
+let refractoryMs = 3000;
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+function init() {
+  updateDate();
+  renderDrivers();
+  renderPhotosGrid();
+  updateSummary();
+  document.getElementById('waNumber').value = localStorage.getItem('lg_wa') || '';
+  document.getElementById('sheetsUrl').value = localStorage.getItem('lg_sheets') || '';
+  document.getElementById('waNumber').addEventListener('change', e => localStorage.setItem('lg_wa', e.target.value));
+  document.getElementById('sheetsUrl').addEventListener('change', e => localStorage.setItem('lg_sheets', e.target.value));
+
+  // Show HTTPS banner if not HTTPS
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    document.getElementById('setupBanner').classList.add('show');
+  }
+
+  // Init scanner
+  html5QrCode = new Html5Qrcode('qr-reader', { verbose: false });
+  startScanner();
+}
+
+function updateDate() {
+  const d = new Date();
+  document.getElementById('headerDate').textContent =
+    d.toLocaleDateString('pt-BR') + '\n' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateDate, 30000);
+
+function closeBanner() { document.getElementById('setupBanner').classList.remove('show'); }
+
+// ─── SCANNER ─────────────────────────────────────────────────────────────────
+function startScanner() {
+  if (scannerRunning) return;
+
+  setStatus('scanning', '📡 Iniciando câmera...');
+
+  const config = {
+    fps: 15,
+    qrbox: { width: 250, height: 250 },
+    aspectRatio: 1.0,
+    rememberLastUsedCamera: true,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+  };
+
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    config,
+    onScanSuccess,
+    onScanError
+  ).then(() => {
+    scannerRunning = true;
+    setStatus('scanning', '🟢 Escaneando — aponte para o QR code');
+  }).catch(err => {
+    setStatus('err', '❌ ' + (err.message || err));
+  });
+}
+
+function onScanSuccess(decodedText) {
+  const code = decodedText.trim();
+
+  // Anti-duplicate global
+  if (document.getElementById('dedupeCheck').checked && scannedCodes.has(code)) {
+    flashScan('dup');
+    setStatus('dup', '⚠️ Já escaneado: ' + code.substring(0, 20));
+    playDupBeep();
+    return;
+  }
+
+  const mp = detectMP(code);
+  addPackage(code, mp);
+  flashScan('ok');
+}
+
+// Silence the constant "no QR found" errors
+function onScanError(err) { /* ignore */ }
+
+function flashScan(type) {
+  const el = document.getElementById('scanFlash');
+  el.className = 'scan-flash';
+  void el.offsetWidth;
+  el.className = 'scan-flash ' + type;
+}
+
+function setStatus(state, text) {
+  const el = document.getElementById('scanStatus');
+  el.className = 'scan-status ' + state;
+  document.getElementById('scanStatusText').textContent = text;
+}
+
+function updateRefractory(val) {
+  refractoryMs = parseInt(val);
+  document.getElementById('refractoryLabel').textContent = (refractoryMs/1000).toFixed(1)+'s';
+  // Restart scanner with new config if running
+  if (scannerRunning) {
+    html5QrCode.stop().then(() => {
+      scannerRunning = false;
+      startScanner();
+    });
+  }
+}
+
+// ─── MARKETPLACE DETECTION ───────────────────────────────────────────────────
+function detectMP(code) {
+  const c = code.toLowerCase();
+  if (c.includes('mercadolivre')||c.includes('mercadolibre')||c.includes('meli.')||
+      c.includes('envioflex')||c.includes('envio flex')||c.includes('20000')||
+      c.includes('pack id')||/\bmlb\d+/i.test(code)) return 'ml';
+  if (c.includes('shopee')||/^br\d{10,15}$/i.test(code.trim())) return 'shopee';
+  if (c.includes('aliexpress')||c.includes('cainiao')||c.includes('ali.com')||
+      /^ae\d+/i.test(code)) return 'ali';
+  return 'other';
+}
+const mpLabel = mp => ({ml:'ML',shopee:'Shopee',ali:'Ali',other:'Outro'}[mp]);
+const mpEmoji = mp => ({ml:'🟡',shopee:'🔴',ali:'🟠',other:'⚪'}[mp]);
+const mpColor = mp => ({ml:'var(--ml)',shopee:'var(--shopee)',ali:'var(--ali)',other:'var(--muted)'}[mp]);
+
+// ─── ADD PACKAGE ─────────────────────────────────────────────────────────────
+function addPackage(code, mp) {
+  const driver = document.getElementById('driverSelect').value;
+  const now = new Date();
+  packages.push({ code, mp, driver, time: now.toISOString() });
+  scannedCodes.add(code);
+  updateCounters(mp);
+  renderScannedList();
+  showBeep(mp);
+  playBeep();
+  const timeStr = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  setStatus('scanned', `${mpEmoji(mp)} ${mpLabel(mp)} — ${code.length>22?code.substring(0,22)+'…':code}`);
+  document.getElementById('scanCounterBadge').textContent = packages.length;
+}
+
+function addManual() {
+  const inp = document.getElementById('manualInput');
+  const code = inp.value.trim();
+  if (!code) return;
+  if (document.getElementById('dedupeCheck').checked && scannedCodes.has(code)) {
+    setStatus('dup','⚠️ Código já registrado!'); return;
+  }
+  addPackage(code, detectMP(code));
+  inp.value = '';
+}
+
+// ─── COUNTERS ────────────────────────────────────────────────────────────────
+function updateCounters(lastMp) {
+  const c = {ml:0,shopee:0,ali:0,other:0};
+  packages.forEach(p => c[p.mp]++);
+  ['ml','shopee','ali','other'].forEach(k => {
+    document.getElementById('cnt-'+k).textContent = c[k];
+  });
+  document.getElementById('cnt-total').textContent = packages.length;
+  // Bump animation on the box that changed
+  if (lastMp) {
+    const box = document.getElementById('box-'+lastMp);
+    box.classList.remove('bump');
+    void box.offsetWidth;
+    box.classList.add('bump');
+    setTimeout(() => box.classList.remove('bump'), 300);
+  }
+}
+
+function renderScannedList() {
+  const list = document.getElementById('scannedList');
+  if (!packages.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>Nenhum pacote ainda</div>';
+    return;
+  }
+  list.innerHTML = '';
+  [...packages].reverse().forEach((pkg, ri) => {
+    const i = packages.length - 1 - ri;
+    const t = new Date(pkg.time).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const div = document.createElement('div');
+    div.className = 'scanned-item';
+    div.innerHTML = `<span class="badge badge-${pkg.mp}">${mpLabel(pkg.mp)}</span><span class="item-code">${pkg.code}</span><span class="item-time">${t}</span><button class="item-del" onclick="removePackage(${i})">✕</button>`;
+    list.appendChild(div);
+  });
+}
+
+function removePackage(i) {
+  scannedCodes.delete(packages[i].code);
+  packages.splice(i, 1);
+  updateCounters(null); renderScannedList();
+  document.getElementById('scanCounterBadge').textContent = packages.length;
+}
+
+function clearAll() {
+  if (!confirm('Limpar todos os pacotes da sessão?')) return;
+  packages = []; scannedCodes = new Set();
+  updateCounters(null); renderScannedList();
+  document.getElementById('scanCounterBadge').textContent = '0';
+}
+
+// ─── SOUNDS ──────────────────────────────────────────────────────────────────
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Two-tone beep like supermarket scanner
+    [880, 1100].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const start = ctx.currentTime + i * 0.07;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.4, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12);
+      osc.start(start); osc.stop(start + 0.13);
+    });
+  } catch(e) {}
+}
+
+function playDupBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.value = 280;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.25);
+  } catch(e) {}
+}
+
+// ─── BEEP VISUAL ─────────────────────────────────────────────────────────────
+function showBeep(mp) {
+  const el = document.getElementById('beepEl');
+  el.className = 'beep-indicator beep-' + mp;
+  el.textContent = mpEmoji(mp);
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 500);
+}
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  const names = ['scanner','count','photos','export','settings'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='tab-'+name));
+  if (name === 'export') updateSummary();
+}
+
+// ─── DRIVERS ─────────────────────────────────────────────────────────────────
+function renderDrivers() {
+  const sel = document.getElementById('driverSelect'), cur = sel.value;
+  sel.innerHTML = '<option value="">— Selecione o entregador —</option>';
+  drivers.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+  if (cur) sel.value = cur;
+  const list = document.getElementById('driversList'); list.innerHTML = '';
+  drivers.forEach((d,i) => {
+    const t = document.createElement('span'); t.className='driver-tag';
+    t.innerHTML = `${d} <button onclick="removeDriver(${i})">×</button>`;
+    list.appendChild(t);
+  });
+  localStorage.setItem('lg_drivers', JSON.stringify(drivers));
+}
+function addDriver() {
+  const inp=document.getElementById('newDriverInput'),name=inp.value.trim();
+  if (!name||drivers.includes(name)) return;
+  drivers.push(name); renderDrivers(); inp.value='';
+}
+function removeDriver(i) { drivers.splice(i,1); renderDrivers(); }
+
+// ─── PHOTOS ──────────────────────────────────────────────────────────────────
+function addPhotos(input) {
+  Array.from(input.files).forEach(file => {
+    if (photos.length >= 8) return;
+    const r = new FileReader();
+    r.onload = e => { photos.push(e.target.result); renderPhotosGrid(); };
+    r.readAsDataURL(file);
+  });
+  input.value = '';
+}
+function renderPhotosGrid() {
+  const grid = document.getElementById('photosGrid'); grid.innerHTML = '';
+  photos.forEach((src,i) => {
+    const w=document.createElement('div'); w.className='photo-wrap';
+    w.innerHTML=`<img src="${src}" class="photo-thumb"><button class="photo-del-btn" onclick="removePhoto(${i})">✕</button>`;
+    w.querySelector('img').onclick = () => { const p=window.open(); p.document.write(`<img src="${src}" style="max-width:100%">`); };
+    grid.appendChild(w);
+  });
+  for(let i=photos.length;i<8;i++){
+    const s=document.createElement('div');
+    s.className='photo-slot'+(i===photos.length?' live':'');
+    s.textContent=i===photos.length?'+':'○';
+    if(i===photos.length) s.onclick=()=>document.getElementById('photoInput').click();
+    grid.appendChild(s);
+  }
+  document.getElementById('photoCount').textContent=`${photos.length} / 8 fotos`;
+  document.getElementById('addPhotoBtn').disabled=photos.length>=8;
+}
+function removePhoto(i){photos.splice(i,1);renderPhotosGrid();}
+function clearPhotos(){if(confirm('Remover todas as fotos?')){photos=[];renderPhotosGrid();}}
+
+// ─── EXPORT ──────────────────────────────────────────────────────────────────
+function buildSummary() {
+  const driver=document.getElementById('driverSelect').value||'N/A', d=new Date();
+  const c={ml:0,shopee:0,ali:0,other:0}; packages.forEach(p=>c[p.mp]++);
+  return `📦 CONFERÊNCIA DE PACOTES\n━━━━━━━━━━━━━━━━━━━━━━\n🗓 ${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}\n🚚 Entregador: ${driver}\n━━━━━━━━━━━━━━━━━━━━━━\n🟡 Mercado Livre: ${c.ml}\n🔴 Shopee:        ${c.shopee}\n🟠 AliExpress:    ${c.ali}\n⚪ Outros:        ${c.other}\n━━━━━━━━━━━━━━━━━━━━━━\n📦 TOTAL: ${packages.length} pacotes\n📸 Fotos: ${photos.length}`;
+}
+function updateSummary(){document.getElementById('summaryBox').textContent=buildSummary();}
+
+function exportWhatsApp(){
+  const num=document.getElementById('waNumber').value.replace(/\D/g,'');
+  if(!num){alert('Digite o número do WhatsApp');return;}
+  localStorage.setItem('lg_wa',num);
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(buildSummary())}`,'_blank');
+}
+
+async function exportSheets(){
+  const url=document.getElementById('sheetsUrl').value.trim();
+  if(!url){document.getElementById('sheetsStatus').textContent='⚠️ Configure a URL';document.getElementById('sheetsStatus').style.color='var(--danger)';return;}
+  localStorage.setItem('lg_sheets',url);
+  const d=new Date(),c={ml:0,shopee:0,ali:0,other:0};packages.forEach(p=>c[p.mp]++);
+  const payload={timestamp:d.toISOString(),date:d.toLocaleDateString('pt-BR'),time:d.toLocaleTimeString('pt-BR'),driver:document.getElementById('driverSelect').value||'',ml:c.ml,shopee:c.shopee,aliexpress:c.ali,other:c.other,total:packages.length,photos:photos.length,codes:packages.map(p=>p.code).join('|')};
+  document.getElementById('sheetsStatus').textContent='⏳ Enviando...';document.getElementById('sheetsStatus').style.color='var(--muted)';
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    document.getElementById('sheetsStatus').textContent='✅ Enviado com sucesso!';document.getElementById('sheetsStatus').style.color='var(--accent2)';
+  }catch(e){document.getElementById('sheetsStatus').textContent='❌ '+e.message;document.getElementById('sheetsStatus').style.color='var(--danger)';}
+}
+
+function exportTxt(){
+  const driver=document.getElementById('driverSelect').value||'entregador';
+  const d=new Date(),fn=`pacotes_${driver.replace(/\s+/g,'_')}_${d.toLocaleDateString('pt-BR').replace(/\//g,'-')}.txt`;
+  const content=buildSummary()+'\n\n--- CÓDIGOS ---\n'+packages.map(p=>`${mpLabel(p.mp)}: ${p.code}`).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'}));a.download=fn;a.click();
+}
+
+// ─── DRIVERS ─────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>

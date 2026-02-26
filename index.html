@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LogScan</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
+:root{
+  --bg:#0d0f12;--surface:#161a1f;--surface2:#1e2430;--border:#2a3040;
+  --accent:#f97316;--accent2:#22c55e;--ml:#ffe600;--shopee:#ee4d2d;
+  --avulso:#94a3b8;--text:#e8eaf0;--muted:#6b7280;--danger:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:'Barlow Condensed',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   OVERLAYS — position:fixed, z-index alto, cobrem o app sem destruí-lo
+══════════════════════════════════════════════════════════════════════════ */
+.overlay{
+  position:fixed;inset:0;z-index:500;
+  display:flex;flex-direction:column;align-items:center;
+  overflow-y:auto;padding-bottom:40px;
+  transition:opacity .25s;
+}
+.overlay.off{opacity:0;pointer-events:none}  /* hidden but DOM intact */
+.overlay.on{opacity:1;pointer-events:all}
+
+/* CHECK-IN overlay */
+#ovCheckin{background:var(--bg)}
+.ci-header{width:100%;background:var(--surface);border-bottom:3px solid var(--accent);padding:18px 20px;text-align:center;margin-bottom:28px}
+.ci-header h1{font-size:30px;font-weight:900;letter-spacing:2px}.ci-header h1 span{color:var(--accent)}
+.ci-header p{font-size:13px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:4px}
+.ci-body{width:100%;max-width:420px;padding:0 20px}
+.selfie-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:22px}
+.selfie-ring{width:120px;height:120px;border-radius:50%;border:3px solid var(--accent);overflow:hidden;background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.selfie-ring img{width:100%;height:100%;object-fit:cover;display:none}
+.selfie-ring .si{font-size:48px}
+.selfie-hint{font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;text-align:center}
+.ci-field{margin-bottom:18px}
+.ci-field label{display:block;font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;font-family:'Space Mono',monospace}
+.ci-field input,.ci-field select{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;padding:12px 14px;appearance:none;outline:none;transition:border-color .2s}
+.ci-field input:focus,.ci-field select:focus{border-color:var(--accent)}
+.ci-sel-wrap{position:relative}.ci-sel-wrap::after{content:'▾';position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--accent);pointer-events:none;font-size:17px}
+.btn-ci{width:100%;background:var(--accent);color:#000;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:10px;padding:15px;cursor:pointer;margin-top:6px}
+.btn-ci:disabled{opacity:.35;pointer-events:none}
+
+/* SUCCESS overlay */
+#ovSuccess{background:rgba(0,0,0,.9);z-index:600;justify-content:center}
+.suc-icon{font-size:72px;animation:popIn .4s ease}
+@keyframes popIn{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.suc-title{font-size:28px;font-weight:900;color:var(--accent2);letter-spacing:1px;margin-top:12px}
+.suc-sub{font-size:14px;color:var(--muted);font-family:'Space Mono',monospace;line-height:1.8;text-align:center;margin-top:6px}
+.btn-newsess{background:var(--accent);color:#000;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:1px;border:none;border-radius:10px;padding:14px 32px;cursor:pointer;margin-top:20px}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   APP SHELL — always rendered, never display:none
+══════════════════════════════════════════════════════════════════════════ */
+.header{background:var(--surface);border-bottom:2px solid var(--accent);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.hd-logo{display:flex;align-items:center;gap:9px}
+.hd-icon{width:34px;height:34px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.hd-title{font-size:18px;font-weight:900;letter-spacing:1px;line-height:1}.hd-title span{color:var(--accent)}
+.hd-sub{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace}
+.op-chip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px 3px 4px;flex-shrink:0}
+.op-av{width:26px;height:26px;border-radius:50%;overflow:hidden;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.op-av img{width:100%;height:100%;object-fit:cover;display:block}
+.op-nm{font-size:12px;font-weight:700;max-width:75px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hd-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);text-align:right;white-space:pre}
+
+.main{padding:10px;max-width:600px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.card-body{padding:12px}
+
+/* Session bar */
+.sess-bar{background:var(--surface);border:1px solid var(--accent);border-radius:10px;margin-bottom:10px;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sess-left{display:flex;align-items:center;gap:9px}
+.sess-name{font-size:20px;font-weight:900;color:var(--accent)}
+.sess-sub{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace}
+.sess-right{display:flex;align-items:center;gap:8px}
+.sess-badge{background:rgba(249,115,22,.15);border:1px solid var(--accent);border-radius:6px;padding:4px 10px;font-size:13px;font-weight:700;color:var(--accent);font-family:'Space Mono',monospace;white-space:nowrap}
+.btn-reset{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 10px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.btn-reset:active{border-color:var(--danger);color:var(--danger)}
+
+/* Tabs */
+.tabs{display:flex;background:var(--surface2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 13px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s;flex-shrink:0}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ══ SCANNER ═══════════════════════════════════════════════════════════════ */
+.scanner-wrap{position:relative}
+
+/* html5-qrcode style overrides */
+#qr-reader{border:none!important;background:#000!important;overflow:hidden}
+#qr-reader video{width:100%!important;display:block}
+#qr-reader__scan_region{background:transparent!important}
+#qr-reader__scan_region img{display:none!important}
+#qr-reader__dashboard{background:var(--surface2)!important;border-top:1px solid var(--border)!important;padding:8px!important}
+#qr-reader__dashboard button{background:var(--accent)!important;color:#000!important;font-weight:700!important;border:none!important;border-radius:6px!important;padding:8px 16px!important;font-family:'Barlow Condensed',sans-serif!important;font-size:14px!important;cursor:pointer!important}
+#qr-reader__dashboard select{background:var(--bg)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:5px!important;padding:5px!important;font-size:12px!important}
+#qr-reader__status_span{color:var(--muted)!important;font-size:11px!important;font-family:'Space Mono',monospace!important}
+#qr-reader__camera_permission_button{background:var(--accent)!important;color:#000!important;font-weight:900!important;font-size:17px!important;padding:13px 24px!important;border-radius:8px!important;border:none!important;cursor:pointer!important;font-family:'Barlow Condensed',sans-serif!important;width:100%!important;letter-spacing:.5px!important}
+#qr-reader__filescan_input{display:none!important}
+#qr-reader__header_message{color:var(--text)!important;font-family:'Space Mono',monospace!important;font-size:11px!important}
+
+/* scan flash */
+.scan-flash{position:absolute;inset:0;pointer-events:none;z-index:10;opacity:0}
+.scan-flash.ok{animation:fGreen .35s ease}.scan-flash.dup{animation:fOrange .35s ease}
+@keyframes fGreen{0%{background:rgba(34,197,94,.55);opacity:1}100%{opacity:0}}
+@keyframes fOrange{0%{background:rgba(249,115,22,.45);opacity:1}100%{opacity:0}}
+
+/* Status bar */
+.scan-status{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border-top:1px solid var(--border);font-size:13px;font-weight:700;min-height:40px}
+.sdot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--muted)}
+.scan-status.scanning .sdot{background:var(--accent2);animation:pulse 1.4s ease infinite}
+.scan-status.scanned .sdot{background:var(--accent2)}
+.scan-status.dup .sdot{background:var(--accent)}
+.scan-status.err .sdot{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.stext{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbadge{background:var(--accent);color:#000;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;padding:3px 8px;border-radius:4px;flex-shrink:0}
+
+/* Inline counters */
+.inline-counters{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--border)}
+.ic-box{display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-right:1px solid var(--border);position:relative;overflow:hidden}
+.ic-box:last-child{border-right:none}
+.ic-box::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.ic-box.ml::after{background:var(--ml)}.ic-box.shopee::after{background:var(--shopee)}.ic-box.avulso::after{background:var(--avulso)}
+.ic-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.ic-num{font-family:'Space Mono',monospace;font-size:38px;font-weight:700;line-height:1}
+.ic-box.ml .ic-num{color:var(--ml)}.ic-box.shopee .ic-num{color:var(--shopee)}.ic-box.avulso .ic-num{color:var(--avulso)}
+.ic-box.bump{animation:bump .25s ease}
+@keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+.total-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--surface2);border-top:1px solid var(--border)}
+.total-lbl{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.total-val{font-family:'Space Mono',monospace;font-size:28px;color:var(--accent)}
+
+/* Manual input */
+.manual-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border)}
+.manual-row input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:16px;padding:8px 10px;outline:none;appearance:none}
+.manual-row input:focus{border-color:var(--accent)}
+
+/* History */
+.hist-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+.hist-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;display:flex;align-items:center;gap:7px;font-size:12px;animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0}
+.badge-ml{background:var(--ml);color:#000}.badge-shopee{background:var(--shopee);color:#fff}.badge-avulso{background:var(--avulso);color:#000}
+.hcode{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.htime{font-size:10px;color:var(--border);white-space:nowrap}
+.hdel{background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:2px 5px}
+.empty-state{text-align:center;padding:20px;color:var(--muted);font-size:13px}
+.empty-icon{font-size:28px;margin-bottom:6px}
+
+/* Photos */
+.photos-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+.photo-wrap{position:relative}
+.photo-thumb{aspect-ratio:1;border-radius:6px;object-fit:cover;border:1px solid var(--border);width:100%;display:block;cursor:pointer}
+.photo-del-btn{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.75);border:none;border-radius:50%;width:22px;height:22px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.photo-slot{aspect-ratio:1;border-radius:6px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:22px;cursor:pointer}
+.photo-slot.live{border-color:var(--accent);color:var(--accent)}
+.photo-count{font-size:11px;color:var(--muted);text-align:right;margin-bottom:5px}
+
+/* Export */
+.summary-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'Space Mono',monospace;font-size:12px;white-space:pre-wrap;color:var(--text);line-height:1.7}
+.export-note{font-size:12px;color:var(--muted);padding:8px 10px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent);line-height:1.6;margin-top:6px}
+
+/* Settings */
+.driver-tag{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 9px;font-size:12px;margin:3px}
+.driver-tag button{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0}
+.add-drv-row{display:flex;gap:8px;margin-top:8px}
+.add-drv-row input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:600;padding:9px 10px;outline:none;appearance:none}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.5px;border:none;cursor:pointer;transition:all .15s;text-transform:uppercase}
+.btn-pr{background:var(--accent);color:#000}.btn-su{background:var(--accent2);color:#000}.btn-dn{background:var(--danger);color:#fff}
+.btn-gh{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-wa{background:#25D366;color:#fff}.btn-f{width:100%}
+.btn:disabled{opacity:.4;pointer-events:none}
+.sep{height:1px;background:var(--border);margin:10px 0}
+.lbl{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+input[type="text"],input[type="tel"]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:600;padding:9px 11px;appearance:none;outline:none;transition:border-color .2s}
+input[type="text"]:focus,input[type="tel"]:focus{border-color:var(--accent)}
+select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;padding:9px 11px;appearance:none;outline:none}
+.sel-wrap{position:relative}.sel-wrap::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--accent);pointer-events:none;font-size:15px}
+
+/* Beep */
+.beep-ind{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);width:85px;height:85px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;pointer-events:none;z-index:999}
+.beep-ind.show{animation:beepPop .45s ease forwards}
+@keyframes beepPop{0%{transform:translate(-50%,-50%) scale(0);opacity:1}40%{transform:translate(-50%,-50%) scale(1.25);opacity:1}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
+.beep-ml{background:rgba(255,230,0,.9)}.beep-shopee{background:rgba(238,77,45,.9)}.beep-avulso{background:rgba(148,163,184,.85)}
+
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     OVERLAYS (position:fixed — cobrem o app sem destruí-lo)
+══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- CHECK-IN -->
+<div id="ovCheckin" class="overlay on">
+  <div class="ci-header">
+    <h1>LOG<span>SCAN</span></h1>
+    <p id="ciSubtitle">Identifique-se para iniciar</p>
+  </div>
+  <div class="ci-body">
+    <div class="selfie-wrap" id="selfieWrap">
+      <div class="selfie-ring" onclick="document.getElementById('selfieInput').click()">
+        <span class="si" id="selfieIcon">👤</span>
+        <img id="selfieImg">
+      </div>
+      <div class="selfie-hint">Toque para tirar sua selfie</div>
+      <input type="file" id="selfieInput" accept="image/*" capture="user" style="display:none" onchange="onSelfie(this)">
+    </div>
+    <div class="ci-field" id="ciNameField">
+      <label>Seu nome (operador)</label>
+      <input type="text" id="ciName" placeholder="Ex: Ana Paula" oninput="validateCI()">
+    </div>
+    <div class="ci-field">
+      <label>Entregador desta remessa</label>
+      <div class="ci-sel-wrap">
+        <select id="ciDriver" onchange="validateCI()">
+          <option value="">— Selecione o entregador —</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-ci" id="btnCI" disabled onclick="startSession()">▶ INICIAR CONFERÊNCIA</button>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div id="ovSuccess" class="overlay off" style="justify-content:center;text-align:center;padding:40px 30px">
+  <div class="suc-icon">✅</div>
+  <div class="suc-title">EXPORTADO!</div>
+  <div class="suc-sub" id="sucSub"></div>
+  <button class="btn-newsess" onclick="newSession()">🔄 Nova conferência</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     APP SHELL — SEMPRE no DOM, câmera sempre viva
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="hd-logo">
+    <div class="hd-icon">📦</div>
+    <div>
+      <div class="hd-title">LOG<span>SCAN</span></div>
+      <div class="hd-sub">SCANNER CONTÍNUO</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="op-chip">
+      <div class="op-av" id="hdAvatar"><span>👤</span></div>
+      <div class="op-nm" id="hdOpName">—</div>
+    </div>
+    <div class="hd-date" id="hdDate"></div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Session bar -->
+  <div class="sess-bar">
+    <div class="sess-left">
+      <span style="font-size:20px">🔒</span>
+      <div>
+        <div class="sess-name" id="sessName">—</div>
+        <div class="sess-sub">Sessão em andamento</div>
+      </div>
+    </div>
+    <div class="sess-right">
+      <div class="sess-badge" id="sessBadge">0 pkgs</div>
+      <button class="btn-reset" onclick="confirmReset()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Tab card -->
+  <div class="card" style="overflow:visible">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('scanner')">📷 Scanner</div>
+      <div class="tab" onclick="switchTab('history')">📋 Histórico</div>
+      <div class="tab" onclick="switchTab('photos')">🖼 Fotos</div>
+      <div class="tab" onclick="switchTab('export')">📤 Exportar</div>
+      <div class="tab" onclick="switchTab('settings')">⚙️ Config</div>
+    </div>
+
+    <!-- ── SCANNER TAB ── -->
+    <div class="tab-panel active" id="tab-scanner">
+      <!-- QR READER: SEMPRE AQUI, NUNCA MOVIDO NEM ESCONDIDO -->
+      <div class="scanner-wrap">
+        <div id="qr-reader"></div>
+        <div class="scan-flash" id="scanFlash"></div>
+      </div>
+      <div class="scan-status" id="scanStatus">
+        <div class="sdot"></div>
+        <div class="stext" id="scanTxt">Aguardando câmera...</div>
+        <div class="sbadge" id="scanBadge">0</div>
+      </div>
+      <div class="inline-counters">
+        <div class="ic-box ml" id="ic-ml"><div class="ic-label">Mercado Livre</div><div class="ic-num" id="cnt-ml">0</div></div>
+        <div class="ic-box shopee" id="ic-shopee"><div class="ic-label">Shopee</div><div class="ic-num" id="cnt-shopee">0</div></div>
+        <div class="ic-box avulso" id="ic-avulso"><div class="ic-label">Avulso</div><div class="ic-num" id="cnt-avulso">0</div></div>
+      </div>
+      <div class="total-row">
+        <span class="total-lbl">Total de pacotes</span>
+        <span class="total-val" id="cnt-total">0</span>
+      </div>
+      <div class="manual-row">
+        <input type="text" id="manualInput" placeholder="Código manual ou cole aqui..." onkeydown="if(event.key==='Enter')addManual()">
+        <button class="btn btn-gh" onclick="addManual()" style="white-space:nowrap;padding:8px 12px;font-size:14px">+ Add</button>
+      </div>
+    </div>
+
+    <!-- ── HISTORY TAB ── -->
+    <div class="tab-panel" id="tab-history">
+      <div class="card-body">
+        <div class="hist-list" id="histList">
+          <div class="empty-state"><div class="empty-icon">📭</div>Nenhum pacote ainda</div>
+        </div>
+        <div style="margin-top:10px">
+          <button class="btn btn-dn btn-f" onclick="clearAll()" style="font-size:13px">🗑 Limpar tudo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHOTOS TAB ── -->
+    <div class="tab-panel" id="tab-photos">
+      <div class="card-body">
+        <div class="photo-count" id="photoCount">0 / 8 fotos</div>
+        <div class="photos-grid" id="photosGrid"></div>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" multiple onchange="addPhotos(this)" style="display:none">
+        <button class="btn btn-gh btn-f" onclick="document.getElementById('photoInput').click()" id="addPhotoBtn">📸 Tirar / Adicionar foto</button>
+        <div style="margin-top:8px">
+          <button class="btn btn-dn btn-f" onclick="clearPhotos()" style="font-size:13px">🗑 Remover todas</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EXPORT TAB ── -->
+    <div class="tab-panel" id="tab-export">
+      <div class="card-body">
+        <div class="lbl">Resumo da conferência</div>
+        <div class="summary-box" id="summaryBox" style="margin-top:5px;margin-bottom:12px"></div>
+        <div class="lbl">Número WhatsApp destino</div>
+        <input type="tel" id="waNum" placeholder="5511999998888" style="margin-top:4px;margin-bottom:6px">
+        <div class="export-note">📸 Selfie + fotos combinadas em uma única imagem e enviadas junto com o resumo.</div>
+        <button class="btn btn-wa btn-f" onclick="exportWhatsApp()" style="margin-top:10px;margin-bottom:8px;font-size:17px;padding:13px">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          EXPORTAR PARA WHATSAPP
+        </button>
+        <div class="sep"></div>
+        <div class="lbl">Google Sheets (opcional)</div>
+        <input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:4px;margin-bottom:8px;font-size:12px">
+        <button class="btn btn-su btn-f" onclick="exportSheets()" style="font-size:14px">📊 Enviar para Google Sheets</button>
+        <div id="sheetsStatus" style="margin-top:7px;font-size:13px;text-align:center;color:var(--muted)"></div>
+        <div class="sep"></div>
+        <button class="btn btn-gh btn-f" onclick="exportTxt()" style="font-size:13px">💾 Baixar .TXT</button>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS TAB ── -->
+    <div class="tab-panel" id="tab-settings">
+      <div class="card-body">
+        <div class="lbl">Entregadores</div>
+        <div id="driversList" style="margin-top:6px;margin-bottom:4px"></div>
+        <div class="add-drv-row">
+          <input type="text" id="newDrvInput" placeholder="Nome do entregador...">
+          <button class="btn btn-pr" onclick="addDriver()" style="white-space:nowrap">+ Add</button>
+        </div>
+        <div class="sep"></div>
+        <div class="lbl" style="margin-bottom:8px">Padrões de detecção (verificados nos seus QR codes)</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;line-height:2.4;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px">
+          <div><span style="color:var(--ml)">■ ML</span>  → JSON com hash_code/sender_id/security_digit</div>
+          <div><span style="color:var(--shopee)">■ Shopee</span> → BR + alfanumérico (ex: BR2603126305985)</div>
+          <div><span style="color:var(--avulso)">■ Avulso</span> → qualquer outro formato</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /main -->
+
+<div class="beep-ind" id="beepEl"></div>
+<canvas id="collageCanvas" style="display:none"></canvas>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+// ═══════════════════════ STATE ════════════════════════════════════════════
+let packages    = [];
+let photos      = [];       // base64
+let scannedCodes = new Set();
+let drivers     = JSON.parse(localStorage.getItem('lg_drivers') || '["João","Pedro","Carlos","Lucas","Marcos","Rafael"]');
+let operatorName  = '';
+let operatorPhoto = '';
+let currentDriver = '';
+let nextMode    = false;    // selecting new driver without re-doing selfie/name
+let sessionLive = false;    // gates scan processing
+
+// html5QrCode instance — created ONCE, never destroyed
+let qrScanner = null;
+
+// ═══════════════════════ BOOT ═════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  updateDate(); setInterval(updateDate, 30000);
+  populateCIDrivers(); renderDriversList();
+  document.getElementById('waNum').value    = localStorage.getItem('lg_wa') || '';
+  document.getElementById('sheetsUrl').value = localStorage.getItem('lg_sheets') || '';
+  document.getElementById('waNum').addEventListener('change',    e => localStorage.setItem('lg_wa',     e.target.value));
+  document.getElementById('sheetsUrl').addEventListener('change', e => localStorage.setItem('lg_sheets', e.target.value));
+
+  // ── Start camera immediately on page load ────────────────────────────
+  // Camera starts here, ONE time, before check-in completes.
+  // Overlays are position:fixed on top — they don't affect the scanner DOM.
+  initCamera();
+});
+
+function updateDate() {
+  const d = new Date(), el = document.getElementById('hdDate');
+  if (el) el.textContent = d.toLocaleDateString('pt-BR') + '\n' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ═══════════════════════ CAMERA — starts once, lives forever ══════════════
+function initCamera() {
+  qrScanner = new Html5Qrcode('qr-reader', { verbose: false });
+  setStatus('scanning', '📡 Aguardando permissão de câmera...');
+
+  qrScanner.start(
+    { facingMode: 'environment' },
+    {
+      fps: 15,
+      qrbox: { width: 240, height: 240 },
+      rememberLastUsedCamera: true,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    },
+    onScanSuccess,
+    () => {} // silence per-frame "not found" errors
+  )
+  .then(() => {
+    setStatus('scanning', '🟢 Câmera pronta');
+  })
+  .catch(err => {
+    setStatus('err', '❌ ' + (err.message || String(err)));
+  });
+}
+
+// ═══════════════════════ SCAN CALLBACK ════════════════════════════════════
+function onScanSuccess(raw) {
+  // If no session active yet, ignore scans — show nudge
+  if (!sessionLive) {
+    setStatus('err', '⚠️ Identifique-se primeiro');
+    return;
+  }
+
+  const code = raw.trim();
+
+  if (scannedCodes.has(code)) {
+    flashScan('dup');
+    setStatus('dup', '⚠️ Já escaneado: ' + code.substring(0,24));
+    playDupBeep();
+    return;
+  }
+
+  addPackage(code, detectMP(code));
+  flashScan('ok');
+}
+
+function flashScan(type) {
+  const el = document.getElementById('scanFlash');
+  el.className = 'scan-flash'; void el.offsetWidth; el.className = 'scan-flash ' + type;
+}
+function setStatus(state, text) {
+  document.getElementById('scanStatus').className = 'scan-status ' + state;
+  document.getElementById('scanTxt').textContent = text;
+}
+
+// ═══════════════════════ CHECK-IN ═════════════════════════════════════════
+function populateCIDrivers() {
+  const sel = document.getElementById('ciDriver');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Selecione o entregador —</option>';
+  drivers.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+  if (cur && drivers.includes(cur)) sel.value = cur;
+}
+
+function onSelfie(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    operatorPhoto = e.target.result;
+    document.getElementById('selfieIcon').style.display = 'none';
+    const img = document.getElementById('selfieImg');
+    img.src = operatorPhoto; img.style.display = 'block';
+  };
+  r.readAsDataURL(file);
+  validateCI();
+}
+
+function validateCI() {
+  const name   = nextMode ? 'ok' : (document.getElementById('ciName').value.trim());
+  const driver = document.getElementById('ciDriver').value;
+  document.getElementById('btnCI').disabled = !(name.length > 0 && driver);
+}
+
+function startSession() {
+  if (!nextMode) operatorName = document.getElementById('ciName').value.trim();
+  currentDriver = document.getElementById('ciDriver').value;
+  if (!currentDriver) return;
+
+  sessionLive = true;
+
+  // Close check-in overlay (fade out, DOM stays)
+  showOverlay('ovCheckin', false);
+
+  // Update header chip
+  document.getElementById('hdOpName').textContent = operatorName;
+  if (operatorPhoto) document.getElementById('hdAvatar').innerHTML = `<img src="${operatorPhoto}">`;
+
+  // Update session bar
+  document.getElementById('sessName').textContent = currentDriver;
+  document.getElementById('sessBadge').textContent = '0 pkgs';
+
+  // Camera is already running — just update status
+  setStatus('scanning', '🟢 Escaneando — aponte para o QR code');
+
+  renderPhotosGrid();
+  updateSummary();
+  nextMode = false;
+}
+
+// ═══════════════════════ MARKETPLACE DETECTION ════════════════════════════
+// Based on actual decoded data from the provided QR images:
+//   ML Envio Flex  → JSON  {"id":"...","sender_id":N,"hash_code":"...","security_digit":"0"}
+//   Shopee / RPida → plain BR + alphanumeric  e.g. BR2603126305985 / BR269634311500F
+function detectMP(raw) {
+  const code  = raw.trim();
+  const lower = code.toLowerCase();
+
+  // ── MERCADO LIVRE ────────────────────────────────────────────────────
+  if (code.charAt(0) === '{') {
+    try {
+      const obj = JSON.parse(code);
+      if ('hash_code' in obj || 'sender_id' in obj || 'security_digit' in obj) return 'ml';
+    } catch(e) {}
+    // Partial / corrupted JSON that still has ML-specific keys
+    if (lower.includes('"hash_code"') || lower.includes('"sender_id"') || lower.includes('"security_digit"')) return 'ml';
+  }
+  // ML URL patterns
+  if (lower.includes('mercadolivre') || lower.includes('mercadolibre') ||
+      lower.includes('meli.')        || lower.includes('menvios')       ||
+      /\bmlb\d+/i.test(code))        return 'ml';
+
+  // ── SHOPEE ────────────────────────────────────────────────────────────
+  // Exact pattern seen in real codes: "BR" followed by 10-16 uppercase alphanumeric chars
+  if (/^BR[A-Z0-9]{10,16}$/i.test(code)) return 'shopee';
+  if (lower.includes('shopee') || lower.includes('spx.') || lower.includes('entregarapida')) return 'shopee';
+
+  // ── AVULSO ────────────────────────────────────────────────────────────
+  return 'avulso';
+}
+
+const mpLabel = mp => ({ml:'ML', shopee:'Shopee', avulso:'Avulso'}[mp] || 'Avulso');
+const mpEmoji = mp => ({ml:'🟡', shopee:'🔴',    avulso:'⚪'}[mp]    || '⚪');
+
+// ═══════════════════════ ADD PACKAGE ══════════════════════════════════════
+function addPackage(code, mp) {
+  const now = new Date();
+  packages.push({ code, mp, driver: currentDriver, time: now.toISOString() });
+  scannedCodes.add(code);
+  updateCounters(mp);
+  renderHistList();
+  showBeep(mp);
+  playBeep();
+  setStatus('scanned', `${mpEmoji(mp)} ${mpLabel(mp)} — ${code.length>26 ? code.substring(0,26)+'…' : code}`);
+  document.getElementById('scanBadge').textContent = packages.length;
+  document.getElementById('sessBadge').textContent = packages.length + ' pkg' + (packages.length !== 1 ? 's' : '');
+}
+
+function addManual() {
+  const inp  = document.getElementById('manualInput');
+  const code = inp.value.trim(); if (!code) return;
+  if (!sessionLive) { alert('Selecione o entregador primeiro.'); return; }
+  if (scannedCodes.has(code)) { setStatus('dup', '⚠️ Código já registrado!'); return; }
+  addPackage(code, detectMP(code)); inp.value = '';
+}
+
+// ═══════════════════════ COUNTERS ═════════════════════════════════════════
+function updateCounters(lastMp) {
+  const c = {ml:0, shopee:0, avulso:0};
+  packages.forEach(p => c[p.mp] = (c[p.mp]||0) + 1);
+  document.getElementById('cnt-ml').textContent     = c.ml;
+  document.getElementById('cnt-shopee').textContent  = c.shopee;
+  document.getElementById('cnt-avulso').textContent  = c.avulso;
+  document.getElementById('cnt-total').textContent   = packages.length;
+  if (lastMp) {
+    const box = document.getElementById('ic-'+lastMp);
+    if (box) { box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); setTimeout(()=>box.classList.remove('bump'),300); }
+  }
+}
+
+function renderHistList() {
+  const list = document.getElementById('histList');
+  if (!packages.length) { list.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div>Nenhum pacote ainda</div>'; return; }
+  list.innerHTML = '';
+  [...packages].reverse().forEach((pkg, ri) => {
+    const i = packages.length - 1 - ri;
+    const t = new Date(pkg.time).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const d = document.createElement('div'); d.className='hist-item';
+    d.innerHTML = `<span class="badge badge-${pkg.mp}">${mpLabel(pkg.mp)}</span><span class="hcode">${pkg.code}</span><span class="htime">${t}</span><button class="hdel" onclick="removePkg(${i})">✕</button>`;
+    list.appendChild(d);
+  });
+}
+
+function removePkg(i) {
+  scannedCodes.delete(packages[i].code); packages.splice(i,1);
+  updateCounters(null); renderHistList();
+  document.getElementById('scanBadge').textContent = packages.length;
+  document.getElementById('sessBadge').textContent = packages.length+' pkg'+(packages.length!==1?'s':'');
+}
+
+function clearAll() {
+  if (!confirm('Limpar todos os pacotes?')) return;
+  packages=[]; scannedCodes=new Set();
+  updateCounters(null); renderHistList();
+  document.getElementById('scanBadge').textContent='0';
+  document.getElementById('sessBadge').textContent='0 pkgs';
+}
+
+// ═══════════════════════ SESSION RESET ════════════════════════════════════
+function confirmReset() {
+  if (!confirm(`Encerrar sessão de "${currentDriver}" e escolher novo entregador?\n\nOs dados atuais serão perdidos.`)) return;
+  doReset();
+}
+
+function doReset() {
+  packages=[]; photos=[]; scannedCodes=new Set(); currentDriver=''; sessionLive=false;
+  updateCounters(null); renderHistList(); renderPhotosGrid();
+  document.getElementById('scanBadge').textContent='0';
+  document.getElementById('sessBadge').textContent='0 pkgs';
+  document.getElementById('sheetsStatus').textContent='';
+  switchTab('scanner');
+  openDriverPicker();
+}
+
+// ═══════════════════════ OVERLAY HELPERS ══════════════════════════════════
+function showOverlay(id, show) {
+  const el = document.getElementById(id);
+  if (show) { el.classList.replace('off','on'); }
+  else       { el.classList.replace('on','off'); }
+}
+
+function openDriverPicker() {
+  nextMode = true;
+  document.getElementById('selfieWrap').style.display  = 'none';
+  document.getElementById('ciNameField').style.display = 'none';
+  document.getElementById('ciSubtitle').textContent    = `Operador: ${operatorName}`;
+  document.getElementById('btnCI').textContent         = '▶ PRÓXIMA CONFERÊNCIA';
+  document.getElementById('ciDriver').value = '';
+  document.getElementById('btnCI').disabled = true;
+  showOverlay('ovCheckin', true);
+  setStatus('scanning', '🟢 Câmera pronta — selecione entregador');
+}
+
+// ═══════════════════════ SOUNDS ═══════════════════════════════════════════
+function playBeep() {
+  try {
+    const ctx = new(window.AudioContext||window.webkitAudioContext)();
+    [880,1100].forEach((freq,i) => {
+      const osc=ctx.createOscillator(), g=ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type='sine'; osc.frequency.value=freq;
+      const s = ctx.currentTime + i*0.07;
+      g.gain.setValueAtTime(0,s); g.gain.linearRampToValueAtTime(0.4,s+0.01); g.gain.exponentialRampToValueAtTime(0.001,s+0.13);
+      osc.start(s); osc.stop(s+0.14);
+    });
+  } catch(e){}
+}
+function playDupBeep() {
+  try {
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator(), g=ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type='sawtooth'; osc.frequency.value=280;
+    g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.25);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.25);
+  } catch(e){}
+}
+function showBeep(mp) {
+  const el=document.getElementById('beepEl');
+  el.className='beep-ind beep-'+mp; el.textContent=mpEmoji(mp);
+  void el.offsetWidth; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),500);
+}
+
+// ═══════════════════════ TABS ══════════════════════════════════════════════
+function switchTab(name) {
+  const names=['scanner','history','photos','export','settings'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+name));
+  if (name==='export') updateSummary();
+}
+
+// ═══════════════════════ PHOTOS ═══════════════════════════════════════════
+function addPhotos(input) {
+  Array.from(input.files).forEach(file => {
+    if (photos.length >= 8) return;
+    const r=new FileReader();
+    r.onload=e=>{photos.push(e.target.result); renderPhotosGrid();};
+    r.readAsDataURL(file);
+  });
+  input.value='';
+}
+function renderPhotosGrid() {
+  const grid=document.getElementById('photosGrid'); grid.innerHTML='';
+  photos.forEach((src,i)=>{
+    const w=document.createElement('div'); w.className='photo-wrap';
+    w.innerHTML=`<img src="${src}" class="photo-thumb"><button class="photo-del-btn" onclick="removePhoto(${i})">✕</button>`;
+    w.querySelector('img').onclick=()=>{const p=window.open();p.document.write(`<img src="${src}" style="max-width:100%">`);};
+    grid.appendChild(w);
+  });
+  for(let i=photos.length;i<8;i++){
+    const s=document.createElement('div');
+    s.className='photo-slot'+(i===photos.length?' live':'');
+    s.textContent=i===photos.length?'+':'○';
+    if(i===photos.length) s.onclick=()=>document.getElementById('photoInput').click();
+    grid.appendChild(s);
+  }
+  document.getElementById('photoCount').textContent=`${photos.length} / 8 fotos`;
+  document.getElementById('addPhotoBtn').disabled=photos.length>=8;
+}
+function removePhoto(i){photos.splice(i,1); renderPhotosGrid();}
+function clearPhotos(){if(confirm('Remover todas?')){photos=[]; renderPhotosGrid();}}
+
+// ═══════════════════════ SUMMARY ══════════════════════════════════════════
+function buildSummary() {
+  const d=new Date(), c={ml:0,shopee:0,avulso:0};
+  packages.forEach(p=>c[p.mp]=(c[p.mp]||0)+1);
+  return [
+    '📦 CONFERÊNCIA DE PACOTES',
+    '━━━━━━━━━━━━━━━━━━━━━━━━',
+    `🗓  ${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`,
+    `🚚  Entregador: ${currentDriver}`,
+    `👤  Operador: ${operatorName}`,
+    '━━━━━━━━━━━━━━━━━━━━━━━━',
+    `🟡  Mercado Livre: ${c.ml}`,
+    `🔴  Shopee:        ${c.shopee}`,
+    `⚪  Avulso:        ${c.avulso}`,
+    '━━━━━━━━━━━━━━━━━━━━━━━━',
+    `📦  TOTAL: ${packages.length} pacotes`,
+    `📸  Fotos: ${photos.length}`
+  ].join('\n');
+}
+function updateSummary(){const el=document.getElementById('summaryBox');if(el)el.textContent=buildSummary();}
+
+// ═══════════════════════ COLLAGE ══════════════════════════════════════════
+async function buildCollage() {
+  const sources=[];
+  if(operatorPhoto) sources.push({src:operatorPhoto,label:'👤 '+operatorName});
+  photos.forEach((s,i)=>sources.push({src:s,label:'Foto '+(i+1)}));
+  if(!sources.length) return null;
+
+  const loadImg=src=>new Promise((res,rej)=>{const img=new Image();img.crossOrigin='anonymous';img.onload=()=>res(img);img.onerror=()=>rej();img.src=src;});
+  const loaded=await Promise.allSettled(sources.map(s=>loadImg(s.src)));
+  const imgs=loaded.map((r,i)=>r.status==='fulfilled'?{img:r.value,label:sources[i].label}:null).filter(Boolean);
+  if(!imgs.length) return null;
+
+  const COLS=Math.min(imgs.length,3),ROWS=Math.ceil(imgs.length/COLS);
+  const CELL=320,HEADER=90,PAD=8;
+  const W=COLS*CELL+(COLS+1)*PAD, H=HEADER+ROWS*CELL+(ROWS+1)*PAD;
+
+  const canvas=document.getElementById('collageCanvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  ctx.fillStyle='#0d0f12'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#161a1f'; ctx.fillRect(0,0,W,HEADER);
+  ctx.fillStyle='#f97316'; ctx.fillRect(0,HEADER-3,W,3);
+  ctx.fillStyle='#f97316'; ctx.font='bold 26px monospace'; ctx.fillText('LOGSCAN',PAD+10,36);
+  ctx.fillStyle='#e8eaf0'; ctx.font='16px monospace'; ctx.fillText(`${currentDriver}  |  Op: ${operatorName}`,PAD+10,58);
+  const d=new Date(), c={ml:0,shopee:0,avulso:0}; packages.forEach(p=>c[p.mp]=(c[p.mp]||0)+1);
+  ctx.fillStyle='#6b7280'; ctx.font='12px monospace';
+  ctx.fillText(`${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}  ML:${c.ml} Shopee:${c.shopee} Avulso:${c.avulso} Total:${packages.length}`,PAD+10,76);
+
+  imgs.forEach(({img,label},idx)=>{
+    const col=idx%COLS, row=Math.floor(idx/COLS);
+    const x=PAD+col*(CELL+PAD), y=HEADER+PAD+row*(CELL+PAD);
+    ctx.fillStyle='#1e2430';
+    ctx.beginPath(); if(ctx.roundRect){ctx.roundRect(x,y,CELL,CELL,8);}else{ctx.rect(x,y,CELL,CELL);} ctx.fill();
+    const ratio=Math.max(CELL/img.naturalWidth,CELL/img.naturalHeight);
+    const dw=img.naturalWidth*ratio,dh=img.naturalHeight*ratio;
+    const dx=x+(CELL-dw)/2,dy=y+(CELL-dh)/2;
+    ctx.save();
+    ctx.beginPath(); if(ctx.roundRect){ctx.roundRect(x,y,CELL,CELL,8);}else{ctx.rect(x,y,CELL,CELL);}
+    ctx.clip(); ctx.drawImage(img,dx,dy,dw,dh); ctx.restore();
+    ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(x,y+CELL-28,CELL,28);
+    ctx.fillStyle='#fff'; ctx.font='bold 14px monospace'; ctx.fillText(label,x+8,y+CELL-10);
+  });
+
+  return new Promise(res=>canvas.toBlob(res,'image/jpeg',0.92));
+}
+
+// ═══════════════════════ WHATSAPP EXPORT ══════════════════════════════════
+async function exportWhatsApp() {
+  const num=(document.getElementById('waNum').value||'').replace(/\D/g,'');
+  localStorage.setItem('lg_wa',num);
+  const summary=buildSummary();
+
+  const totalImgs=(operatorPhoto?1:0)+photos.length;
+  let collageBlob=null;
+  if(totalImgs>0){
+    try{ collageBlob=await buildCollage(); }catch(e){ console.warn('collage failed',e); }
+  }
+
+  // Web Share with file (iOS 15+ supports files in share sheet)
+  if(navigator.share && collageBlob){
+    const file=new File([collageBlob],'logscan_conferencia.jpg',{type:'image/jpeg'});
+    const sd={text:summary,files:[file]};
+    if(navigator.canShare && navigator.canShare(sd)){
+      try{ await navigator.share(sd); showSuccess(summary); return; }
+      catch(err){ if(err.name==='AbortError') return; /* continue to fallback */ }
+    }
+  }
+
+  // Web Share text only
+  if(navigator.share){
+    try{ await navigator.share({text:summary}); showSuccess(summary); return; }
+    catch(err){ if(err.name==='AbortError') return; }
+  }
+
+  // wa.me fallback (desktop / older Android)
+  const url='https://wa.me/'+(num?num+'/':'')+'?text='+encodeURIComponent(summary);
+  const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>showSuccess(summary),700);
+}
+
+// ═══════════════════════ SHEETS + TXT ═════════════════════════════════════
+async function exportSheets(){
+  const url=document.getElementById('sheetsUrl').value.trim();
+  if(!url){document.getElementById('sheetsStatus').textContent='⚠️ Configure a URL';document.getElementById('sheetsStatus').style.color='var(--danger)';return;}
+  localStorage.setItem('lg_sheets',url);
+  const d=new Date(),c={ml:0,shopee:0,avulso:0};packages.forEach(p=>c[p.mp]=(c[p.mp]||0)+1);
+  const payload={timestamp:d.toISOString(),date:d.toLocaleDateString('pt-BR'),time:d.toLocaleTimeString('pt-BR'),driver:currentDriver,operator:operatorName,ml:c.ml,shopee:c.shopee,avulso:c.avulso,total:packages.length,photos:photos.length,codes:packages.map(p=>p.code).join('|')};
+  document.getElementById('sheetsStatus').textContent='⏳ Enviando...';document.getElementById('sheetsStatus').style.color='var(--muted)';
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    document.getElementById('sheetsStatus').textContent='✅ Enviado!';document.getElementById('sheetsStatus').style.color='var(--accent2)';
+  }catch(e){document.getElementById('sheetsStatus').textContent='❌ '+e.message;document.getElementById('sheetsStatus').style.color='var(--danger)';}
+}
+function exportTxt(){
+  const d=new Date(),fn=`pacotes_${currentDriver.replace(/\s+/g,'_')}_${d.toLocaleDateString('pt-BR').replace(/\//g,'-')}.txt`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buildSummary()+'\n\n--- CÓDIGOS ---\n'+packages.map(p=>`${mpLabel(p.mp)}: ${p.code}`).join('\n')],{type:'text/plain'}));a.download=fn;a.click();
+}
+
+// ═══════════════════════ SUCCESS ══════════════════════════════════════════
+function showSuccess(summary){
+  const c={ml:0,shopee:0,avulso:0};packages.forEach(p=>c[p.mp]=(c[p.mp]||0)+1);
+  document.getElementById('sucSub').textContent=`Entregador: ${currentDriver}\nTotal: ${packages.length} pacotes\nML: ${c.ml}  ·  Shopee: ${c.shopee}  ·  Avulso: ${c.avulso}`;
+  showOverlay('ovSuccess',true);
+}
+function newSession(){
+  showOverlay('ovSuccess',false);
+  doReset();
+}
+
+// ═══════════════════════ SETTINGS ═════════════════════════════════════════
+function renderDriversList(){
+  const list=document.getElementById('driversList');list.innerHTML='';
+  drivers.forEach((d,i)=>{const t=document.createElement('span');t.className='driver-tag';t.innerHTML=`${d} <button onclick="removeDriver(${i})">×</button>`;list.appendChild(t);});
+  localStorage.setItem('lg_drivers',JSON.stringify(drivers));
+  populateCIDrivers();
+}
+function addDriver(){const inp=document.getElementById('newDrvInput'),name=inp.value.trim();if(!name||drivers.includes(name))return;drivers.push(name);renderDriversList();inp.value='';}
+function removeDriver(i){drivers.splice(i,1);renderDriversList();}
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#f97316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Saída Velozz">
+    
+    <title>Saída Flex Velozz</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loginOverlay" class="overlay">
+    <h2 style="text-align:center; color:var(--accent); margin-bottom:20px;">SAÍDA FLEX VELOZZ</h2>
+    <button id="btnRecover" class="btn btn-warn hidden" onclick="app.session.recoverCrash()">⚠️ RECUPERAR SESSÃO ANTERIOR</button>
+
+    <div class="card">
+        <div class="selfie-box" onclick="document.getElementById('inputSelfie').click()">
+            <img id="previewSelfie" src="" style="display:none">
+            <span id="selfiePlaceholder" style="font-size:12px; font-weight:bold;">📸 TIRAR SELFIE*</span>
+        </div>
+        <input type="file" id="inputSelfie" accept="image/*" capture="user" class="hidden">
+        
+        <label style="font-size:12px; color:#6b7280; text-transform:uppercase;">Operador:</label>
+        <select id="selOperator"></select>
+
+        <label style="font-size:12px; color:#6b7280; text-transform:uppercase;">Entregador:</label>
+        <select id="selDriver"></select>
+
+        <button class="btn btn-pr" id="btnStart" style="margin-top:15px" onclick="app.session.start()">▶ INICIAR CONFERÊNCIA</button>
+    </div>
+</div>
+
+<div id="mainApp" class="hidden" style="height:100vh; display:flex; flex-direction:column;">
+    
+    <div class="tabs-header">
+        <div class="tab-link active" onclick="app.ui.goToTab(0)">📷 Scanner</div>
+        <div class="tab-link" onclick="app.ui.goToTab(1)">📋 Histórico</div>
+        <div class="tab-link" onclick="app.ui.goToTab(2)">🖼️ Fotos</div>
+        <div class="tab-link" onclick="app.ui.goToTab(3)">📤 Exportar</div>
+    </div>
+
+    <div id="swipeContainer" style="padding:0 10px;">
+        
+        <div class="page active" id="page-0">
+            <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:10px; margin-bottom:10px;">
+                <div>
+                    <h3 id="displayDriver" style="color:var(--accent); margin:0;">Entregador</h3>
+                    <small id="displayOperator" style="color:#6b7280; font-family:'Space Mono';">Operador</small>
+                </div>
+                <button class="btn" style="width:auto; padding:5px 15px; background:var(--surface); border:1px solid var(--danger); color:var(--danger);" onclick="app.session.reset(true)">CANCELAR</button>
+            </div>
+
+            <div class="card" style="margin-bottom: 10px; padding: 10px;">
+                <label style="font-size: 12px; color: var(--accent); font-weight: bold; text-transform: uppercase;">📦 Qtd. Esperada (Manual):</label>
+                <input type="number" id="inputExpected" placeholder="Expectativa de pacotes" style="margin-bottom: 0; font-size: 20px; font-weight: bold; color: var(--accent);">
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item ml" id="box-ml">ML<br><b id="countML" style="font-size:22px; color:#ffe600;">0</b></div>
+                <div class="stat-item shopee" id="box-shopee">SHOPEE<br><b id="countShopee" style="font-size:22px; color:#ee4d2d;">0</b></div>
+                <div class="stat-item avulso" id="box-avulso">AVULSO<br><b id="countAvulso" style="font-size:22px; color:#94a3b8;">0</b></div>
+            </div>
+
+            <div class="cam-container" id="camContainer">
+                <video id="camVideo" autoplay playsinline muted></video>
+                <div class="scanner-laser"></div>
+                <div class="scan-flash" id="scanFlash"></div>
+                <button class="btn-flash" id="btnFlash" onclick="app.scanner.toggleFlashlight()">🔦</button>
+                <canvas id="qrCanvas" class="hidden"></canvas>
+            </div>
+            <button class="btn btn-sec" style="margin-top:auto;" onclick="app.ui.nextTab()">PRÓXIMO ➔</button>
+        </div>
+
+        <div class="page" id="page-1">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color:#6b7280; font-size:12px; text-transform:uppercase;">Pacotes Lidos (<span id="countTotal">0</span>)</h4>
+                <button style="background:none; border:none; color:var(--danger); font-size:12px; cursor:pointer;" onclick="app.session.clearAll()">Limpar Tudo</button>
+            </div>
+            <div id="historyList" class="history-list"></div>
+            <button class="btn btn-sec" style="margin-top:auto;" onclick="app.ui.nextTab()">PRÓXIMO ➔</button>
+        </div>
+
+        <div class="page" id="page-2">
+            <h4 style="color:#6b7280; font-size:12px; text-transform:uppercase; margin-bottom:10px;">Documentação (<span id="photoCountText">0</span>/8)</h4>
+            <div class="photos-grid" id="photosGrid"></div>
+            <input type="file" id="inputPhoto" accept="image/*" capture="environment" multiple class="hidden">
+            <button class="btn btn-sec" style="background:#2a3040; color:#fff;" onclick="document.getElementById('inputPhoto').click()">📸 ADICIONAR FOTO</button>
+            <button class="btn btn-danger hidden" id="btnClearPhotos" onclick="app.session.clearPhotos()">🗑️ REMOVER FOTOS</button>
+            <button class="btn btn-sec" style="margin-top:auto;" onclick="app.ui.nextTab()">PRÓXIMO ➔</button>
+        </div>
+
+        <div class="page" id="page-3">
+            <h4 style="color:#6b7280; font-size:12px; text-transform:uppercase; margin-bottom:10px;">Resumo da Sessão</h4>
+            <div id="exportSummary" class="summary-box">Nenhum dado ainda.</div>
+            <div style="margin-top:auto;">
+                <button class="btn btn-wa" onclick="app.export.toWhatsApp()">📲 COMPARTILHAR E FINALIZAR</button>
+                <button class="btn btn-sec hidden" id="btnSync" style="background:#2a3040; color:var(--accent); border:1px solid var(--accent);" onclick="app.export.syncQueue()">🔄 SINCRONIZAR PENDENTES (0)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalDivergence" class="overlay hidden" style="background: rgba(0,0,0,0.95); justify-content: center; align-items: center; z-index: 2000;">
+    <div class="card" style="width: 100%; max-width: 400px; border-color: var(--danger);">
+        <h3 style="color: var(--danger); margin-bottom: 15px; text-align: center;">⚠️ DIVERGÊNCIA DETECTADA</h3>
+        <div id="divergenceText" style="font-size: 16px; margin-bottom: 15px; text-align: center; background: #000; padding: 10px; border-radius: 8px;"></div>
+        
+        <label style="font-size: 12px; color: #6b7280; text-transform: uppercase;">Justificativa Obrigatória:</label>
+        <select id="selReason" onchange="app.ui.toggleOtherReason()">
+            <option value="Pacote faltando no sistema">Pacote faltando no sistema</option>
+            <option value="Etiqueta ilegível/danificada">Etiqueta ilegível/danificada</option>
+            <option value="Erro de contagem manual">Erro de contagem manual</option>
+            <option value="Outros">Outros (especificar abaixo)</option>
+        </select>
+        
+        <textarea id="txtOtherReason" class="hidden" placeholder="Descreva o motivo da divergência..." style="height: 80px;"></textarea>
+        
+        <button class="btn btn-pr" style="margin-top: 15px; background: var(--danger); color: #fff;" onclick="app.export.confirmAndSend()">ENVIAR COM DIVERGÊNCIA</button>
+        <button class="btn btn-sec" onclick="document.getElementById('modalDivergence').classList.add('hidden')">VOLTAR E REVISAR LEITURA</button>
+    </div>
+</div>
+
+<div class="beep-ind" id="beepEl"></div>
+<canvas id="collageCanvas" style="display:none"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+<script>
+    if ('serviceWorker' in navigator) { 
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(err => console.error(err));
+        }); 
+    }
+</script>
+</body>
+</html>

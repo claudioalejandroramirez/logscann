@@ -1,129 +1,194 @@
-# LogScann
+<p align="center">
+  <img src="icon-512.png" alt="LogScann Logo" width="120" height="120" style="border-radius: 20px;">
+</p>
 
-## Descrição
+<h1 align="center">📦 LogScann — Saída Flex Velozz</h1>
 
-O **LogScann** é uma aplicação web desenvolvida para otimizar o processo de conferência de pacotes de entregadores na transportadora Flex Velozz. Surgiu da necessidade de verificar manualmente os pacotes após o recebimento de mercadorias de diversos vendedores, já registrados no software LogManager. Anteriormente, a equipe operacional separava os pacotes por CEP (Código de Endereçamento Postal), e os entregadores montavam seus respectivos pacotes. Cada pacote era contado manualmente pela equipe, verificando:
+<p align="center">
+  <strong>Sistema de conferência automatizada de pacotes para entregadores</strong>
+</p>
 
-- Quantidade total de pacotes sob responsabilidade do entregador.
-- Contagem por marketplace: quantos do Mercado Livre, quantos da Shopee, quantos avulsos.
-- Se cada pacote estava registrado na conta do entregador nos respectivos apps dos marketplaces.
+<p align="center">
+  <img src="https://img.shields.io/badge/status-beta-orange?style=flat-square" alt="Status">
+  <img src="https://img.shields.io/badge/plataforma-PWA-blueviolet?style=flat-square" alt="PWA">
+  <img src="https://img.shields.io/badge/frontend-HTML%2FCSS%2FJS-blue?style=flat-square" alt="Frontend">
+  <img src="https://img.shields.io/badge/backend-Google%20Apps%20Script-green?style=flat-square" alt="Backend">
+  <img src="https://img.shields.io/badge/hospedagem-GitHub%20Pages-lightgrey?style=flat-square" alt="Hospedagem">
+</p>
 
-Os resultados eram registrados em papel pelo operador, digitados no WhatsApp pelo entregador (incluindo nome do operador, quantidades, classificações por marketplace e prints de tela do celular com evidências de registro). Esses dados eram enviados a um grupo no WhatsApp e conferidos um a um pelo RH para cálculo de comissões. Com aproximadamente 200 entregadores, esse processo era exaustivo, propenso a erros humanos e exigia transferência manual para planilhas de controle.
+---
 
-O LogScann integra-se nativamente com o Google Sheets, permitindo exportação automática de dados e cálculos de valores de pacotes por entregador, eliminando a necessidade de transferências manuais. Além disso, as evidências são compiladas em uma imagem e enviadas via WhatsApp para notificação do RH, enquanto os dados alimentam a planilha em segundo plano. O app utiliza um scanner para beep de todas as encomendas, automatizando o registro, e permite ao operador tirar fotos das telas dos celulares do entregador com as evidências de registro em cada marketplace, compilando tudo em uma imagem única.
+## 🧬 Origem do Projeto
 
-## Funcionalidades
+> Este app foi criado como um **protótipo via vibe coding** — ou seja, foi gerado e iterado a partir de
+> prompts de IA e vem sendo **lapidado progressivamente** com base nos resultados obtidos.
+> O objetivo é evoluir de um MVP funcional para uma ferramenta robusta
+> de operação, validando cada iteração no ambiente real da transportadora.
 
-- **Scanner para Beep**: Automatiza o registro de encomendas via scanner.
-- **Conferência Automatizada**: Conta e classifica pacotes por marketplace.
-- **Integração com Google Sheets**: Exportação automática de dados e cálculos de comissões.
-- **Registro de Evidências**: Captura de fotos das telas dos celulares do entregador e compilação em imagem para envio.
-- **Envio para WhatsApp**: Compila evidências em imagem e envia como mensagem para notificar o RH.
-- **Interface Web Responsiva**: Acessível via navegador.
-- **Suporte Offline**: Capacidade de reter informações mesmo com instabilidade de rede (via PWA).
+---
 
-## Status do Projeto
+## 📖 Descrição
 
-Esta é a versão beta do LogScann. As funcionalidades práticas já foram testadas. Os testes atuais concentram-se na latência e na capacidade de lidar com múltiplas solicitações e usuários concorrentes para determinar a capacidade máxima.
+O **LogScann** é uma aplicação web (PWA) desenvolvida para a transportadora **Flex Velozz**, com o objetivo de otimizar o processo de conferência de pacotes na saída dos entregadores.
 
-## Acesso
+### O problema anterior
 
-O app está sendo servido via GitHub Pages no link: [https://claudioalejandroramirez.github.io/logscann/](https://claudioalejandroramirez.github.io/logscann/)
+Antes do LogScann, o fluxo era totalmente manual:
 
-## Melhorias Futuras
+1. Os pacotes chegavam dos vendedores e eram separados por CEP pela equipe operacional.
+2. Cada entregador montava seus pacotes e um operador conferia manualmente:
+   - **Quantidade total** de pacotes do entregador
+   - **Classificação por marketplace** (Mercado Livre, Shopee, avulsos)
+   - **Verificação de registro** em cada app de marketplace
+3. Os resultados eram anotados em **papel** pelo operador.
+4. O entregador digitava tudo no **WhatsApp** (nome, quantidades, classificações e prints de tela).
+5. O **RH** conferia um a um para calcular comissões — com ~200 entregadores, processo exaustivo e propenso a erros.
 
-- Desenvolvimento de um app em tecnologia mais avançada para registro de novos entregadores e operadores, sem necessidade de alterações no código fonte.
-- Acesso offline aprimorado através de um app instalado, capaz de reter informações mesmo diante de instabilidade da rede.
-- Arquivos APK já disponíveis para instalação em dispositivos móveis.
+### A solução
 
-## Stack Tecnológica
+O LogScann automatiza esse fluxo:
 
-O LogScann foi desenvolvido utilizando as seguintes tecnologias:
+- 📷 **Scanner QR Code** via câmera do celular (usando a biblioteca [jsQR](https://github.com/nicolestandifer3/jsqr)) para classificar pacotes automaticamente por marketplace.
+- 📊 **Integração com Google Sheets** para registro e cálculo automático de comissões.
+- 🖼️ **Compilação de evidências em imagem** (collage com selfie do operador + fotos das telas do entregador).
+- 📲 **Compartilhamento via WhatsApp** com resumo + imagem compilada para notificação do RH.
 
-- **Frontend**:
-  - HTML5: Estrutura da interface.
-  - CSS3: Estilização responsiva.
-  - JavaScript (ES6+): Lógica da aplicação e interações.
+---
 
-- **Backend/Integração**:
-  - Google Apps Script (Code.gs): Para integração com Google Sheets, permitindo exportação e cálculos automáticos.
+## ✨ Funcionalidades
 
-- **Progressive Web App (PWA)**:
-  - Manifest.json: Configuração para instalação como app nativo.
-  - Service Worker (sw.js): Suporte offline e cache de recursos.
+| Funcionalidade | Descrição |
+|---|---|
+| 📷 **Scanner QR Code** | Lê QR codes dos pacotes via câmera traseira e classifica automaticamente como ML, Shopee ou Avulso |
+| 🔦 **Lanterna** | Controle de flash para leitura em ambientes escuros |
+| 📦 **Expectativa de pacotes** | Campo obrigatório que trava após o primeiro bipe para garantir integridade da conferência |
+| ⚠️ **Detecção de divergência** | Compara pacotes lidos × esperados e exige justificativa em caso de diferença |
+| 🖼️ **Registro de evidências** | Captura de até 8 fotos das telas dos apps de marketplace do entregador |
+| 🧩 **Collage automática** | Gera imagem compilada com selfie do operador + fotos de evidência + metadados |
+| 📲 **Compartilhamento** | Envia resumo + imagem via Web Share API ou link do WhatsApp |
+| 📊 **Google Sheets** | Registro automático de todos os dados + cálculo de valores por marketplace |
+| ☁️ **Upload de imagens** | Salva a collage no Google Drive com link público na planilha |
+| 🔄 **Fila de sincronização** | Se offline, armazena os dados em `localStorage` e sincroniza ao reconectar |
+| 💾 **Recuperação de sessão** | Backup automático via `localStorage` permite recuperar sessões em caso de crash |
+| 📱 **PWA** | Instalável como app nativo, com cache de assets via Service Worker |
 
-- **Configuração**:
-  - config.js: Arquivo de configuração para parâmetros customizáveis.
+---
 
-- **Hospedagem**:
-  - GitHub Pages: Hospedagem gratuita e simples para aplicações web estáticas.
+## 🚀 Acesso
 
-## Arquitetura do Software
+🔗 **[Acessar o LogScann](https://claudioalejandroramirez.github.io/logscann/)**
 
-A arquitetura do LogScann é baseada em uma aplicação web progressiva (PWA) simples e eficiente, projetada para ser leve e acessível:
+Também é possível instalar como app nativo (PWA) direto pelo navegador.
+
+---
+
+## 🏗️ Stack Tecnológica
+
+```
+Frontend                    Backend / Integração
+├── HTML5                   ├── Google Apps Script (Code.gs)
+├── CSS3 (responsivo)       ├── Google Sheets (planilha)
+├── JavaScript ES6+         └── Google Drive (armazenamento de imagens)
+└── jsQR (scanner QR)
+                            Infraestrutura
+PWA                         ├── GitHub Pages (hospedagem)
+├── manifest.json           └── localStorage (persistência local)
+└── sw.js (Service Worker)
+```
+
+---
+
+## 🏛️ Arquitetura
 
 ### Componentes Principais
 
-1. **Interface do Usuário (Frontend)**:
-   - `index.html`: Página principal com formulários para entrada de dados (quantidades, marketplaces, evidências).
-   - `style.css`: Estilos para uma interface intuitiva e responsiva, otimizada para dispositivos móveis.
-   - `app.js`: Lógica JavaScript para validação de dados, integração com scanner para beep, captura de fotos das telas dos celulares, compilação de imagens, envio para WhatsApp e Google Sheets.
-
-2. **Integração com Google Sheets e WhatsApp (Backend)**:
-   - `Code.gs`: Script do Google Apps Script executado no lado do servidor do Google. Recebe dados do frontend via APIs do Google, processa e insere na planilha designada. Realiza cálculos automáticos de comissões baseados nas regras definidas. 
-   
-   - `WhatsApp`: Também auxilia no envio de imagens compiladas (via Canvas) para WhatsApp.
-
-3. **Configuração e Suporte Offline**:
-   - `config.js`: Contém configurações como URLs de APIs, chaves de autenticação (se aplicável), e parâmetros de marketplaces.
-   - `manifest.json`: Define metadados para instalação como PWA, incluindo ícones, nome e permissões.
-   - `sw.js`: Service Worker que cacheia recursos estáticos, permitindo funcionamento offline básico. Armazena dados localmente usando IndexedDB ou similar para sincronização posterior quando a rede estiver disponível.
+| Arquivo | Responsabilidade |
+|---|---|
+| `index.html` | Interface com 4 abas: Scanner, Histórico, Fotos e Exportar |
+| `style.css` | Estilização responsiva (tema escuro com accent laranja `#f97316`) |
+| `app.js` | Lógica principal: classes `UIController`, `Registry`, `Session`, `Scanner`, `CollageBuilder`, `AudioController`, `ExportController` |
+| `config.js` | Lista de operadores e entregadores cadastrados |
+| `Code.gs` | Google Apps Script: recebe POST com dados, insere na planilha e faz upload da imagem para o Google Drive |
+| `manifest.json` | Metadados do PWA (ícones, nome, orientação, screenshots) |
+| `sw.js` | Service Worker com estratégia network-first e fallback para cache |
 
 ### Fluxo de Dados
 
-1. **Entrada de Dados**: O operador utiliza o scanner para beep das encomendas, automatizando o registro. Em seguida, insere quantidades, classifica por marketplace e tira fotos das telas dos celulares do entregador com evidências de registro em cada marketplace.
-2. **Processamento Local**: `app.js` valida os dados, compila as fotos em uma imagem única (incluindo a foto do operador que fez a conferência), e prepara para envio.
-3. **Envio Simultâneo**: A imagem compilada é enviada como mensagem para o WhatsApp (para notificação do RH), e os dados são enviados via fetch API para o endpoint do Google Apps Script.
-4. **Processamento no Servidor**: `Code.gs` recebe os dados, insere na planilha e calcula comissões.
-5. **Confirmação**: Feedback é retornado ao usuário via interface.
-
-### Considerações de Segurança e Performance
-
-- **Segurança**: Autenticação via Google OAuth para acesso às planilhas. Dados sensíveis são transmitidos via HTTPS.
-- **Performance**: Arquitetura leve, sem dependências pesadas. Testes de latência em andamento para otimização.
-- **Escalabilidade**: Projetado para múltiplos usuários concorrentes; testes atuais avaliam capacidade máxima.
-
-### Diagrama de Arquitetura (Simplificado)
-
-```
-[Operador] --> [Scanner (Beep)] --> [Interface Web (HTML/CSS/JS)] --> [Captura de Fotos] --> [Compilação de Imagem]
-                                                                                      |
-                                                                                      v
-[Envio para WhatsApp] <-- [Service Worker (Offline)] <-- [Google Apps Script] --> [Google Sheets]
+```mermaid
+graph TD
+    A[👤 Operador] -->|Selfie + Login| B[Tela de Login]
+    B -->|Seleciona Operador + Entregador| C[📷 Scanner QR Code]
+    C -->|jsQR classifica pacote| D{Tipo?}
+    D -->|JSON / MLB...| E[🟡 Mercado Livre]
+    D -->|BR...| F[🔴 Shopee]
+    D -->|Outro| G[⚪ Avulso]
+    E & F & G --> H[📋 Histórico de Leituras]
+    H --> I[🖼️ Fotos de Evidência]
+    I --> J[📤 Exportar]
+    J -->|Gera collage via Canvas| K[🧩 Imagem Compilada]
+    K -->|Web Share API| L[📲 WhatsApp]
+    K -->|POST fetch| M[Google Apps Script]
+    M -->|Insere dados| N[📊 Google Sheets]
+    M -->|Upload imagem| O[☁️ Google Drive]
 ```
 
-Para uma visualização mais detalhada, consulte os arquivos fonte no repositório.
+### Lógica de Classificação de Pacotes
 
-## Instalação e Uso
+O scanner identifica automaticamente o marketplace com base no conteúdo do QR Code:
+
+- **Mercado Livre**: QR codes contendo JSON (`{...}`) com chaves como `shipment_id`, `hash_code`, `order_id`, ou códigos de barras lineares no formato `MLB[0-9]+`
+- **Shopee**: Códigos no formato `BR[A-Z0-9]{10,16}`
+- **Avulso**: Qualquer outro código que não se encaixe nas regras acima
+
+---
+
+## 📲 Instalação e Uso
 
 ### Pré-requisitos
 
-- Conta Google com acesso ao Google Sheets.
-- Navegador moderno com suporte a PWA (Chrome, Firefox, etc.).
-- Acesso ao scanner para beep das encomendas.
+- Navegador moderno com suporte a PWA (Chrome recomendado)
+- Câmera traseira funcional (para o scanner QR)
+- Acesso à internet (para sincronizar com Google Sheets)
 
-### Uso
+### Passo a passo
 
-1. Acesse o app via o link: [https://claudioalejandroramirez.github.io/logscann/](https://claudioalejandroramirez.github.io/logscann/)
-2. Instale como PWA se desejado (opção "Instalar" no navegador).
-3. Utilize o scanner para registrar encomendas via beep.
-4. Insira quantidades, classifique por marketplace e tire fotos das evidências.
-5. O app compila as imagens e envia para WhatsApp e Google Sheets automaticamente.
+1. Acesse **[https://claudioalejandroramirez.github.io/logscann/](https://claudioalejandroramirez.github.io/logscann/)**
+2. Instale como PWA se desejado _(opção "Instalar" no navegador)_
+3. Tire sua **selfie** (obrigatória)
+4. Selecione o **operador** e o **entregador**
+5. Clique em **▶ INICIAR CONFERÊNCIA**
+6. Informe a **expectativa de pacotes** e comece a escanear os QR codes
+7. Adicione **fotos das evidências** (telas dos apps do entregador)
+8. Na aba **Exportar**, toque em **📲 COMPARTILHAR E FINALIZAR**
 
-## Licença
+---
 
-Este projeto é de uso particular e não está disponível para contribuição externa.
+## 📈 Status do Projeto
 
-## Contato
+| Aspecto | Status |
+|---|---|
+| Funcionalidades core | ✅ Testadas e operacionais |
+| Testes de latência | 🔄 Em andamento |
+| Testes de concorrência | 🔄 Em andamento |
+| Cadastro dinâmico de operadores/entregadores | 📋 Planejado |
 
-Para dúvidas ou sugestões, entre em contato com a equipe de desenvolvimento da Flex Velozz.
+---
+
+## 🔮 Melhorias Futuras
+
+- 🔧 Sistema de cadastro dinâmico de operadores e entregadores (sem necessidade de alterar `config.js`)
+- 📶 Aprimoramento do suporte offline com sincronização mais robusta
+- 📱 Distribuição via APK para instalação direta em dispositivos móveis
+- 🧪 Testes de carga para determinar capacidade máxima de usuários simultâneos
+
+---
+
+## 🔒 Licença
+
+Este projeto é de **uso particular** da Flex Velozz e não está disponível para contribuição externa.
+
+---
+
+## 📬 Contato
+
+Para dúvidas ou sugestões, entre em contato com a equipe de desenvolvimento da **Flex Velozz**.

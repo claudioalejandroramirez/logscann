@@ -57,20 +57,20 @@ O LogScann automatiza esse fluxo:
 
 ## ✨ Funcionalidades
 
-| Funcionalidade | Descrição |
-|---|---|
-| 📷 **Scanner nativo** | Lê QR codes e códigos de barras 1D via `BarcodeDetector` (hardware) com fallback `jsQR`. Câmera 1920×1080. Classifica como ML, Shopee ou Avulso |
-| 🔦 **Lanterna** | Controle de flash para leitura em ambientes escuros |
-| 📦 **Expectativa de pacotes** | Campo obrigatório que trava após o primeiro bipe para garantir integridade da conferência |
-| ⚠️ **Detecção de divergência** | Compara pacotes lidos × esperados e exige justificativa em caso de diferença |
-| 🖼️ **Registro de evidências** | Captura de até 8 fotos das telas dos apps de marketplace do entregador |
-| 🧩 **Collage automática** | Gera imagem compilada com selfie do operador + fotos de evidência + metadados |
-| 📲 **Compartilhamento** | Envia resumo + imagem via Web Share API ou link do WhatsApp |
-| 📊 **Google Sheets** | Registro automático de todos os dados + cálculo de valores por marketplace |
-| ☁️ **Upload de imagens** | Salva a collage no Google Drive com link público na planilha |
-| 🔄 **Fila de sincronização** | Se offline, armazena os dados em `localStorage` e sincroniza ao reconectar |
-| 💾 **Recuperação de sessão** | Backup automático via `localStorage` permite recuperar sessões em caso de crash |
-| 📱 **PWA** | Instalável como app nativo, com cache de assets via Service Worker |
+| Funcionalidade                 | Descrição                                                                                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📷 **Scanner nativo**          | Lê QR codes e códigos de barras 1D via `BarcodeDetector` (hardware) com fallback `jsQR`. Câmera 1920×1080. Classifica como ML, Shopee ou Avulso |
+| 🔦 **Lanterna**                | Controle de flash para leitura em ambientes escuros                                                                                             |
+| 📦 **Expectativa de pacotes**  | Campo obrigatório que trava após o primeiro bipe para garantir integridade da conferência                                                       |
+| ⚠️ **Detecção de divergência** | Compara pacotes lidos × esperados e exige justificativa em caso de diferença                                                                    |
+| 🖼️ **Registro de evidências**  | Captura de até 8 fotos das telas dos apps de marketplace do entregador                                                                          |
+| 🧩 **Collage automática**      | Gera imagem compilada com selfie do operador + fotos de evidência + metadados                                                                   |
+| 📲 **Compartilhamento**        | Envia resumo + imagem via Web Share API ou link do WhatsApp                                                                                     |
+| 📊 **Google Sheets**           | Registro automático de todos os dados + cálculo de valores por marketplace                                                                      |
+| ☁️ **Upload de imagens**       | Salva a collage no Google Drive com link público na planilha                                                                                    |
+| 🔄 **Fila de sincronização**   | Se offline, armazena os dados em `localStorage` e sincroniza ao reconectar                                                                      |
+| 💾 **Recuperação de sessão**   | Backup automático via `localStorage` permite recuperar sessões em caso de crash                                                                 |
+| 📱 **PWA**                     | Instalável como app nativo, com cache de assets via Service Worker                                                                              |
 
 ---
 
@@ -92,8 +92,8 @@ Frontend                    Backend / Integração
 ├── BarcodeDetector API
 │   (nativo, hardware)      Infraestrutura
 └── jsQR (fallback)         ├── GitHub Pages (hospedagem)
-                            └── localStorage (persistência local)
-PWA
+                            ├── GitHub Actions (deploy automatizado)
+PWA                         └── localStorage (persistência local)
 ├── manifest.json
 └── sw.js (Service Worker)
 ```
@@ -104,15 +104,17 @@ PWA
 
 ### Componentes Principais
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `index.html` | Interface com 4 abas: Scanner, Histórico, Fotos e Exportar |
-| `style.css` | Estilização responsiva (tema escuro com accent laranja `#f97316`) |
-| `app.js` | Lógica principal: classes `UIController`, `Registry`, `Session`, `Scanner`, `CollageBuilder`, `AudioController`, `ExportController` |
-| `config.js` | Lista de operadores e entregadores cadastrados |
-| `Code.gs` | Google Apps Script: recebe POST com dados, insere na planilha e faz upload da imagem para o Google Drive |
-| `manifest.json` | Metadados do PWA (ícones, nome, orientação, screenshots) |
-| `sw.js` | Service Worker com estratégia network-first e fallback para cache |
+| Arquivo                                 | Responsabilidade                                                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `index.html`                            | Interface com 4 abas: Scanner, Histórico, Fotos e Exportar                                                                          |
+| `src/css/style.css`                     | Estilização responsiva (tema escuro com accent laranja `#f97316`)                                                                   |
+| `src/js/app.js` (etc)                   | Lógica principal: classes `UIController`, `Registry`, `Session`, `Scanner`, `CollageBuilder`, `AudioController`, `ExportController` |
+| `src/config.js`                         | Lista de operadores e entregadores cadastrados                                                                                      |
+| `google-apps-script/Code.gs`            | Google Apps Script: recebe POST com dados, insere na planilha e faz upload da imagem para o Google Drive                            |
+| `google-apps-script/script_properties.json` | Configuração de propriedades do script (ID da planilha, pasta do Drive)                                                             |
+| `manifest.json` / `public/`             | Metadados do PWA (ícones, nome, orientação, screenshots)                                                                            |
+| `sw.js`                                 | Service Worker com estratégia network-first e fallback para cache                                                                   |
+| `.github/workflows/deploy.yml`          | Automação de deploy para o GitHub Pages via GitHub Actions                                                                          |
 
 ### Fluxo de Dados
 
@@ -167,12 +169,12 @@ O scanner identifica automaticamente o marketplace com base no conteúdo do QR C
 
 ## 📈 Status do Projeto
 
-| Aspecto | Status |
-|---|---|
-| Funcionalidades core | ✅ Testadas e operacionais |
-| Testes de latência | 🔄 Em andamento |
-| Testes de concorrência | 🔄 Em andamento |
-| Cadastro dinâmico de operadores/entregadores | 📋 Planejado |
+| Aspecto                                      | Status                     |
+| -------------------------------------------- | -------------------------- |
+| Funcionalidades core                         | ✅ Testadas e operacionais |
+| Testes de latência                           | 🔄 Em andamento            |
+| Testes de concorrência                       | 🔄 Em andamento            |
+| Cadastro dinâmico de operadores/entregadores | 📋 Planejado               |
 
 ---
 

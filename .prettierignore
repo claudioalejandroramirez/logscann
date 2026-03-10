@@ -1,0 +1,5 @@
+node_modules/
+.github/
+google-apps-script/
+public/
+package-lock.json

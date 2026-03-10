@@ -84,7 +84,6 @@ class Session {
         this.startTime = null;
         this._pendingManualCode = null; // Para guardar código enquanto aguarda foto
         this._pendingManualType = null;
-        this.checkCrash();
     }
 
     saveBackup() {
@@ -92,58 +91,29 @@ class Session {
             operator: this.operator, driver: this.driver, selfie: this.selfie,
             photos: this.photos, start: this.startTime, expected: this.expected
         };
-        try { 
-            localStorage.setItem('velozz_active_session', JSON.stringify(backup)); 
+        try {
+            localStorage.setItem('velozz_active_session', JSON.stringify(backup));
         } catch (e) { console.warn("Limite de armazenamento local atingido."); }
     }
 
-    checkCrash() {
-        if (localStorage.getItem('velozz_active_session')) document.getElementById('btnRecover').classList.remove('hidden');
-    }
 
-    recoverCrash() {
-        try {
-            const backup = JSON.parse(localStorage.getItem('velozz_active_session'));
-            this.operator = backup.operator; this.driver = backup.driver;
-            this.selfie = backup.selfie; this.photos = backup.photos || [];
-            this.startTime = backup.start || Date.now();
-            this.expected = backup.expected || { ml: 0, shopee: 0, avulso: 0, total: 0 };
-            this.counts = { ml: 0, shopee: 0, avulso: 0, total: 0 };
-            this.codesMap = new Map();
-            document.getElementById('selOperator').value = this.operator;
-            document.getElementById('selDriver').value = this.driver;
-            
-            // Preenche expectativas na tela de login
-            document.getElementById('inputExpML').value = this.expected.ml || '';
-            document.getElementById('inputExpShopee').value = this.expected.shopee || '';
-            document.getElementById('inputExpAvulso').value = this.expected.avulso || '';
-            
-            if (this.selfie) {
-                document.getElementById('previewSelfie').src = this.selfie;
-                document.getElementById('previewSelfie').style.display = 'block';
-                document.getElementById('selfiePlaceholder').style.display = 'none';
-            }
-            document.getElementById('btnRecover').classList.add('hidden');
-            this.start(true);
-        } catch (e) { localStorage.removeItem('velozz_active_session'); }
-    }
 
     start(isRecover = false) {
         this.operator = document.getElementById('selOperator').value;
         this.driver = document.getElementById('selDriver').value;
         if (!this.selfie && this.photos.length === 0) return alert("A Selfie é obrigatória!");
         if (!this.operator || !this.driver) return alert("Selecione Operador e Entregador!");
-        
+
         // Lê expectativas por marketplace
         const expML = parseInt(document.getElementById('inputExpML').value) || 0;
         const expShopee = parseInt(document.getElementById('inputExpShopee').value) || 0;
         const expAvulso = parseInt(document.getElementById('inputExpAvulso').value) || 0;
         const expTotal = expML + expShopee + expAvulso;
-        
+
         if (expTotal <= 0) return alert("Preencha a expectativa de pelo menos um marketplace!");
-        
+
         this.expected = { ml: expML, shopee: expShopee, avulso: expAvulso, total: expTotal };
-        
+
         if (!isRecover) this.startTime = Date.now();
         this.parent.audio.init();
         this.saveBackup();
@@ -170,12 +140,12 @@ class Session {
         this.codesMap.clear(); this.photos = []; this.driver = ''; this.startTime = null;
         this._pendingManualCode = null; this._pendingManualType = null;
         document.getElementById('selDriver').value = '';
-        
+
         // Limpa expectativas na login
         document.getElementById('inputExpML').value = '';
         document.getElementById('inputExpShopee').value = '';
         document.getElementById('inputExpAvulso').value = '';
-        
+
         this.updateUI(); this.parent.ui.renderPhotos();
         document.getElementById('mainApp').classList.add('hidden');
         document.getElementById('loginOverlay').classList.remove('hidden');
@@ -209,16 +179,16 @@ class Session {
         }
 
         let type = 'avulso', displayCode = code;
-        
+
         if (code.startsWith('{') || code.includes('hash_code') || code.includes('shipment')) {
-            type = 'ml'; 
-            try { 
-                const parsed = JSON.parse(code); 
-                displayCode = parsed.shipment_id || parsed.shipment || parsed.order_id || parsed.tracking_number || parsed.hash_code || parsed.id; 
+            type = 'ml';
+            try {
+                const parsed = JSON.parse(code);
+                displayCode = parsed.shipment_id || parsed.shipment || parsed.order_id || parsed.tracking_number || parsed.hash_code || parsed.id;
                 if (!displayCode) displayCode = "ML_FLEX";
-            } catch (e) {}
-        } else if (/^BR[A-Z0-9]{10,16}$/i.test(code)) { 
-            type = 'shopee'; 
+            } catch (e) { }
+        } else if (/^BR[A-Z0-9]{10,16}$/i.test(code)) {
+            type = 'shopee';
         } else if (/^MLB[0-9]+$/i.test(code)) {
             type = 'ml';
         }
@@ -234,14 +204,14 @@ class Session {
         const codeInput = document.getElementById('inputManualCode');
         const code = codeInput.value.trim();
         const type = document.getElementById('selManualType').value;
-        
+
         if (!code) return alert("Digite o ID do pacote!");
         if (this.codesMap.has(code)) {
             this.parent.audio.playError();
             this.parent.scanner.showDupAlert();
             return alert("Código já registrado!");
         }
-        
+
         // Guarda o código e tipo pendente, dispara câmera para foto obrigatória
         this._pendingManualCode = code;
         this._pendingManualType = type;
@@ -253,19 +223,19 @@ class Session {
         const code = this._pendingManualCode;
         const type = this._pendingManualType;
         if (!code || !type) return;
-        
+
         // Registra o pacote
         this.counts[type]++; this.counts.total++;
         this.codesMap.set(code, { display: code, type: type, manual: true });
-        
+
         // Adiciona foto com label de evidência
         const label = `Evidência: ${code}`;
         this.addPhoto(photoB64, label);
-        
+
         this.parent.audio.playSuccess();
         this.parent.scanner.showBeepVisual(type);
         this.updateUI(type);
-        
+
         // Limpa campos
         document.getElementById('inputManualCode').value = '';
         this._pendingManualCode = null;
@@ -300,14 +270,14 @@ class Session {
         this.counts[item.type]--; this.counts.total--; this.codesMap.delete(code); this.updateUI();
     }
 
-    clearAll() { 
-        if (confirm("Apagar leituras?")) { 
-            this.counts = { ml: 0, shopee: 0, avulso: 0, total: 0 }; 
-            this.codesMap.clear(); 
-            this.updateUI(); 
-        } 
+    clearAll() {
+        if (confirm("Apagar leituras?")) {
+            this.counts = { ml: 0, shopee: 0, avulso: 0, total: 0 };
+            this.codesMap.clear();
+            this.updateUI();
+        }
     }
-    
+
     addPhoto(b64, label = null) {
         if (this.photos.length < 8) {
             const item = label ? { src: b64, label: label } : b64;
@@ -373,7 +343,7 @@ class Scanner {
             const cap = this.track.getCapabilities(); if (!cap.torch) return alert("Lanterna indisponível.");
             this.torchOn = !this.torchOn; await this.track.applyConstraints({ advanced: [{ torch: this.torchOn }] });
             document.getElementById('btnFlash').style.background = this.torchOn ? '#ffe600' : 'rgba(0,0,0,0.6)';
-        } catch (e) {}
+        } catch (e) { }
     }
 
     flash(type) { const el = document.getElementById('scanFlash'); el.className = 'scan-flash'; void el.offsetWidth; el.className = 'scan-flash ' + type; }
@@ -403,7 +373,7 @@ class Scanner {
                     if (barcodes.length > 0) {
                         detected = barcodes[0].rawValue;
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
 
             if (!detected && typeof jsQR !== 'undefined') {
@@ -438,31 +408,31 @@ class CollageBuilder {
             }
         });
         if (!sources.length) return null;
-        
+
         const load = src => new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = src; });
-        
+
         const loaded = await Promise.allSettled(sources.map(s => load(s.src)));
         const imgs = loaded.map((r, i) => r.status === 'fulfilled' ? { img: r.value, label: sources[i].label } : null).filter(Boolean);
         if (!imgs.length) return null;
-        
+
         const COLS = Math.min(imgs.length, 3), ROWS = Math.ceil(imgs.length / COLS), CELL = 480, HDR = 120, PAD = 12;
         const W = COLS * CELL + (COLS + 1) * PAD, H = HDR + ROWS * CELL + (ROWS + 1) * PAD;
-        
+
         const canvas = document.getElementById('collageCanvas'); canvas.width = W; canvas.height = H; const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#0d0f12'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#161a1f'; ctx.fillRect(0, 0, W, HDR); ctx.fillStyle = '#f97316'; ctx.fillRect(0, HDR - 4, W, 4);
-        
+
         ctx.fillStyle = '#f97316'; ctx.font = 'bold 32px monospace'; ctx.fillText('SAÍDA FLEX VELOZZ', PAD + 10, 40);
         ctx.fillStyle = '#e8eaf0'; ctx.font = '22px monospace'; ctx.fillText(`${session.driver} | Op: ${session.operator}`, PAD + 10, 70);
         const d = new Date(); ctx.fillStyle = '#6b7280'; ctx.font = '18px monospace';
         ctx.fillText(`${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR')} | Total: ${session.counts.total}`, PAD + 10, 100);
-        
+
         imgs.forEach(({ img, label }, idx) => {
             const col = idx % COLS, row = Math.floor(idx / COLS), x = PAD + col * (CELL + PAD), y = HDR + PAD + row * (CELL + PAD);
             ctx.fillStyle = '#1e2430'; ctx.fillRect(x, y, CELL, CELL);
             const ratio = Math.max(CELL / img.naturalWidth, CELL / img.naturalHeight);
             const dw = img.naturalWidth * ratio, dh = img.naturalHeight * ratio, dx = x + (CELL - dw) / 2, dy = y + (CELL - dh) / 2;
             ctx.save(); ctx.beginPath(); ctx.rect(x, y, CELL, CELL); ctx.clip(); ctx.drawImage(img, dx, dy, dw, dh); ctx.restore();
-            
+
             // Label de evidência em vermelho, demais em branco
             const isEvidence = label.startsWith('Evidência:');
             ctx.fillStyle = isEvidence ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.6)';
@@ -470,8 +440,8 @@ class CollageBuilder {
             ctx.fillStyle = '#fff'; ctx.font = 'bold 20px monospace';
             ctx.fillText(label.substring(0, 28), x + 12, y + CELL - 14);
         });
-        
-        return new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95)); 
+
+        return new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
     }
 }
 
@@ -521,9 +491,9 @@ class ExportController {
     async toWhatsApp() {
         const s = this.parent.session;
         if (s.counts.total === 0 && s.photos.length === 0) return alert("Nada para exportar!");
-        
+
         const divergences = this.checkDivergence();
-        
+
         if (divergences.length > 0) {
             // Monta tabela de divergência visual
             let html = '<table style="width:100%; font-size:14px; border-collapse:collapse; margin-bottom:5px;">';
@@ -532,14 +502,14 @@ class ExportController {
                 html += `<tr><td style="color:${d.color}; font-weight:bold; padding:4px;">${d.name}</td><td style="text-align:center; padding:4px;">${d.expected}</td><td style="text-align:center; padding:4px; color:var(--danger); font-weight:bold;">${d.read}</td></tr>`;
             });
             html += '</table>';
-            
+
             const totalLine = `<div style="text-align:center; margin-top:8px; font-weight:bold;">Total: <span style="color:var(--danger);">${s.counts.total}</span> / ${s.expected.total}</div>`;
-            
+
             document.getElementById('divergenceText').innerHTML = html + totalLine;
             document.getElementById('modalDivergence').classList.remove('hidden');
             return;
         }
-        
+
         // Sem divergência → segue direto
         this.confirmAndSend();
     }
@@ -560,7 +530,7 @@ class ExportController {
         const s = this.parent.session;
 
         document.getElementById('modalDivergence').classList.add('hidden');
-        
+
         const btn = document.querySelector('.btn-wa'); const oldText = btn.textContent;
         btn.textContent = '⏳ PROCESSANDO...'; btn.disabled = true;
 
@@ -600,7 +570,7 @@ class ExportController {
     async syncQueue() {
         let q = JSON.parse(localStorage.getItem('velozz_sync_queue')) || []; if (!q.length || !navigator.onLine) return;
         const btn = document.getElementById('btnSync'); btn.textContent = "⏳ SINCRONIZANDO..."; let ok = [];
-        for (let i = 0; i < q.length; i++) { try { await fetch(this.sheetsUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(q[i]) }); ok.push(i); } catch (e) {} }
+        for (let i = 0; i < q.length; i++) { try { await fetch(this.sheetsUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(q[i]) }); ok.push(i); } catch (e) { } }
         if (ok.length) { q = q.filter((_, idx) => !ok.includes(idx)); localStorage.setItem('velozz_sync_queue', JSON.stringify(q)); alert(`✅ Sincronizado com a planilha!`); }
         this.updateSyncUI();
     }
@@ -618,12 +588,12 @@ const compressImage = (file, callback) => {
         img.onload = () => {
             const canvas = document.createElement('canvas');
             let w = img.width, h = img.height;
-            const maxW = 1200; 
+            const maxW = 1200;
             if (w > maxW) { h = Math.round((h * maxW) / w); w = maxW; }
             canvas.width = w; canvas.height = h;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
-            callback(canvas.toDataURL('image/jpeg', 0.85)); 
+            callback(canvas.toDataURL('image/jpeg', 0.85));
         };
         img.src = e.target.result;
     };
@@ -633,11 +603,11 @@ const compressImage = (file, callback) => {
 document.getElementById('inputSelfie').onchange = e => {
     if (!e.target.files.length) return;
     compressImage(e.target.files[0], b64 => {
-        app.session.selfie = b64; 
-        document.getElementById('previewSelfie').src = b64; 
-        document.getElementById('previewSelfie').style.display = 'block'; 
-        document.getElementById('selfiePlaceholder').style.display = 'none'; 
-        app.session.saveBackup(); 
+        app.session.selfie = b64;
+        document.getElementById('previewSelfie').src = b64;
+        document.getElementById('previewSelfie').style.display = 'block';
+        document.getElementById('selfiePlaceholder').style.display = 'none';
+        app.session.saveBackup();
     });
 };
 

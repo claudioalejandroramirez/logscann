@@ -1,11 +1,18 @@
-const CACHE_NAME = 'velozz-flex-v13'; 
+const CACHE_NAME = 'velozz-flex-v14'; 
 
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './config.js',
-  './app.js',
+  './js/ui.js',
+  './js/registry.js',
+  './js/session.js',
+  './js/scanner.js',
+  './js/collage.js',
+  './js/audio.js',
+  './js/export.js',
+  './js/main.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

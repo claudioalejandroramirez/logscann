@@ -1,6 +1,6 @@
 /**
  * MOTOR DE OPERAÇÃO - FLEX VELOZZ
- * Versão: 6.2 - Correção de Leitura Mercado Livre JSON
+ * Versão: 7.0 - Expectativa por marketplace + Inserção manual + Divergência por marketplace
  */
 
 class UIController {
@@ -36,10 +36,14 @@ class UIController {
         const grid = document.getElementById('photosGrid');
         grid.innerHTML = '';
         const photos = app.session.photos;
-        photos.forEach((src, i) => {
+        photos.forEach((item, i) => {
+            const src = typeof item === 'string' ? item : item.src;
+            const label = typeof item === 'string' ? null : item.label;
             const slot = document.createElement('div');
             slot.className = 'photo-slot';
-            slot.innerHTML = `<img src="${src}"><button class="photo-del" onclick="event.stopPropagation(); app.session.removePhoto(${i})">X</button>`;
+            slot.innerHTML = `<img src="${src}">` +
+                (label ? `<span class="photo-label">${label}</span>` : '') +
+                `<button class="photo-del" onclick="event.stopPropagation(); app.session.removePhoto(${i})">X</button>`;
             grid.appendChild(slot);
         });
         for (let i = photos.length; i < 8; i++) {
@@ -51,13 +55,6 @@ class UIController {
         }
         document.getElementById('photoCountText').textContent = photos.length;
         document.getElementById('btnClearPhotos').classList.toggle('hidden', photos.length === 0);
-    }
-
-    toggleOtherReason() {
-        const sel = document.getElementById('selReason').value;
-        const txt = document.getElementById('txtOtherReason');
-        if (sel === "Outros") txt.classList.remove('hidden');
-        else txt.classList.add('hidden');
     }
 }
 
@@ -80,15 +77,21 @@ class Session {
         this.operator = '';
         this.driver = '';
         this.selfie = '';
-        this.photos = [];
+        this.photos = []; // Cada item: string (b64) ou { src: b64, label: string }
         this.counts = { ml: 0, shopee: 0, avulso: 0, total: 0 };
+        this.expected = { ml: 0, shopee: 0, avulso: 0, total: 0 };
         this.codesMap = new Map();
         this.startTime = null;
+        this._pendingManualCode = null; // Para guardar código enquanto aguarda foto
+        this._pendingManualType = null;
         this.checkCrash();
     }
 
     saveBackup() {
-        const backup = { operator: this.operator, driver: this.driver, selfie: this.selfie, photos: this.photos, start: this.startTime };
+        const backup = {
+            operator: this.operator, driver: this.driver, selfie: this.selfie,
+            photos: this.photos, start: this.startTime, expected: this.expected
+        };
         try { 
             localStorage.setItem('velozz_active_session', JSON.stringify(backup)); 
         } catch (e) { console.warn("Limite de armazenamento local atingido."); }
@@ -104,13 +107,16 @@ class Session {
             this.operator = backup.operator; this.driver = backup.driver;
             this.selfie = backup.selfie; this.photos = backup.photos || [];
             this.startTime = backup.start || Date.now();
+            this.expected = backup.expected || { ml: 0, shopee: 0, avulso: 0, total: 0 };
             this.counts = { ml: 0, shopee: 0, avulso: 0, total: 0 };
             this.codesMap = new Map();
             document.getElementById('selOperator').value = this.operator;
             document.getElementById('selDriver').value = this.driver;
             
-            // Destrava a expectativa caso estivesse travada de um crash passado
-            document.getElementById('inputExpected').disabled = false;
+            // Preenche expectativas na tela de login
+            document.getElementById('inputExpML').value = this.expected.ml || '';
+            document.getElementById('inputExpShopee').value = this.expected.shopee || '';
+            document.getElementById('inputExpAvulso').value = this.expected.avulso || '';
             
             if (this.selfie) {
                 document.getElementById('previewSelfie').src = this.selfie;
@@ -128,6 +134,16 @@ class Session {
         if (!this.selfie && this.photos.length === 0) return alert("A Selfie é obrigatória!");
         if (!this.operator || !this.driver) return alert("Selecione Operador e Entregador!");
         
+        // Lê expectativas por marketplace
+        const expML = parseInt(document.getElementById('inputExpML').value) || 0;
+        const expShopee = parseInt(document.getElementById('inputExpShopee').value) || 0;
+        const expAvulso = parseInt(document.getElementById('inputExpAvulso').value) || 0;
+        const expTotal = expML + expShopee + expAvulso;
+        
+        if (expTotal <= 0) return alert("Preencha a expectativa de pelo menos um marketplace!");
+        
+        this.expected = { ml: expML, shopee: expShopee, avulso: expAvulso, total: expTotal };
+        
         if (!isRecover) this.startTime = Date.now();
         this.parent.audio.init();
         this.saveBackup();
@@ -137,6 +153,11 @@ class Session {
         document.getElementById('loginOverlay').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
 
+        // Mostra expectativas nos stat-items
+        document.getElementById('expML').textContent = `/ ${this.expected.ml}`;
+        document.getElementById('expShopee').textContent = `/ ${this.expected.shopee}`;
+        document.getElementById('expAvulso').textContent = `/ ${this.expected.avulso}`;
+
         this.parent.ui.renderPhotos();
         this.parent.scanner.init();
     }
@@ -145,13 +166,15 @@ class Session {
         if (isCancel && !confirm("Cancelar carga? Os dados serão perdidos.")) return;
         localStorage.removeItem('velozz_active_session');
         this.counts = { ml: 0, shopee: 0, avulso: 0, total: 0 };
+        this.expected = { ml: 0, shopee: 0, avulso: 0, total: 0 };
         this.codesMap.clear(); this.photos = []; this.driver = ''; this.startTime = null;
+        this._pendingManualCode = null; this._pendingManualType = null;
         document.getElementById('selDriver').value = '';
         
-        // Destrava e limpa a expectativa para a próxima sessão
-        const expInput = document.getElementById('inputExpected');
-        expInput.value = '';
-        expInput.disabled = false;
+        // Limpa expectativas na login
+        document.getElementById('inputExpML').value = '';
+        document.getElementById('inputExpShopee').value = '';
+        document.getElementById('inputExpAvulso').value = '';
         
         this.updateUI(); this.parent.ui.renderPhotos();
         document.getElementById('mainApp').classList.add('hidden');
@@ -159,22 +182,31 @@ class Session {
         this.parent.ui.goToTab(0); this.parent.scanner.stop();
     }
 
-    registerPackage(rawCode) {
-        // BLOQUEIO DA EXPECTATIVA NO PRIMEIRO BIPE
-        if (this.counts.total === 0) {
-            const expStr = document.getElementById('inputExpected').value;
-            if (!expStr || isNaN(parseInt(expStr)) || parseInt(expStr) <= 0) {
-                this.parent.audio.playError();
-                alert("⚠️ Obrigatório: Preencha a 'Expectativa de pacotes' antes de iniciar as leituras!");
-                document.getElementById('inputExpected').focus();
-                return; // Impede a leitura se estiver vazio
-            }
-            // Trava o campo para não ser editado no meio da conferência
-            document.getElementById('inputExpected').disabled = true;
-        }
+    // Reset silencioso (sem confirmação) — usado pelo cancelar divergência
+    forceReset() {
+        localStorage.removeItem('velozz_active_session');
+        this.counts = { ml: 0, shopee: 0, avulso: 0, total: 0 };
+        this.expected = { ml: 0, shopee: 0, avulso: 0, total: 0 };
+        this.codesMap.clear(); this.photos = []; this.driver = ''; this.startTime = null;
+        this._pendingManualCode = null; this._pendingManualType = null;
+        document.getElementById('selDriver').value = '';
+        document.getElementById('inputExpML').value = '';
+        document.getElementById('inputExpShopee').value = '';
+        document.getElementById('inputExpAvulso').value = '';
+        this.updateUI(); this.parent.ui.renderPhotos();
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        this.parent.ui.goToTab(0); this.parent.scanner.stop();
+    }
 
+    registerPackage(rawCode) {
         const code = rawCode.trim();
-        if (this.codesMap.has(code)) { this.parent.audio.playError(); this.parent.scanner.flash('dup'); return; }
+        if (this.codesMap.has(code)) {
+            this.parent.audio.playError();
+            this.parent.scanner.flash('dup');
+            this.parent.scanner.showDupAlert();
+            return;
+        }
 
         let type = 'avulso', displayCode = code;
         
@@ -182,19 +214,12 @@ class Session {
             type = 'ml'; 
             try { 
                 const parsed = JSON.parse(code); 
-                // NOVA LÓGICA: Prioriza as chaves corretas de logística do Mercado Livre
-                // Evita que o sistema puxe o telefone se ele estiver na chave genérica "id"
                 displayCode = parsed.shipment_id || parsed.shipment || parsed.order_id || parsed.tracking_number || parsed.hash_code || parsed.id; 
-                
-                // Se o ID ainda não for encontrado, define o padrão
-                if (!displayCode) {
-                    displayCode = "ML_FLEX";
-                }
+                if (!displayCode) displayCode = "ML_FLEX";
             } catch (e) {}
         } else if (/^BR[A-Z0-9]{10,16}$/i.test(code)) { 
             type = 'shopee'; 
         } else if (/^MLB[0-9]+$/i.test(code)) {
-            // Regra de segurança para código de barras linear 1D do Mercado Livre (ex: MLB12345678)
             type = 'ml';
         }
 
@@ -202,6 +227,49 @@ class Session {
         this.codesMap.set(code, { display: displayCode, type: type });
         this.parent.audio.playSuccess(); this.parent.scanner.flash('ok');
         this.parent.scanner.showBeepVisual(type); this.updateUI(type);
+    }
+
+    // Inserção manual — dispara câmera para evidência
+    manualEntry() {
+        const codeInput = document.getElementById('inputManualCode');
+        const code = codeInput.value.trim();
+        const type = document.getElementById('selManualType').value;
+        
+        if (!code) return alert("Digite o ID do pacote!");
+        if (this.codesMap.has(code)) {
+            this.parent.audio.playError();
+            this.parent.scanner.showDupAlert();
+            return alert("Código já registrado!");
+        }
+        
+        // Guarda o código e tipo pendente, dispara câmera para foto obrigatória
+        this._pendingManualCode = code;
+        this._pendingManualType = type;
+        document.getElementById('inputManualPhoto').click();
+    }
+
+    // Chamado quando a foto de evidência manual é capturada
+    completeManualEntry(photoB64) {
+        const code = this._pendingManualCode;
+        const type = this._pendingManualType;
+        if (!code || !type) return;
+        
+        // Registra o pacote
+        this.counts[type]++; this.counts.total++;
+        this.codesMap.set(code, { display: code, type: type, manual: true });
+        
+        // Adiciona foto com label de evidência
+        const label = `Evidência: ${code}`;
+        this.addPhoto(photoB64, label);
+        
+        this.parent.audio.playSuccess();
+        this.parent.scanner.showBeepVisual(type);
+        this.updateUI(type);
+        
+        // Limpa campos
+        document.getElementById('inputManualCode').value = '';
+        this._pendingManualCode = null;
+        this._pendingManualType = null;
     }
 
     updateUI(lastType = null) {
@@ -219,7 +287,9 @@ class Session {
         Array.from(this.codesMap.entries()).reverse().forEach(([rawCode, data]) => {
             const log = document.createElement('div'); log.className = 'hist-item';
             let color = data.type === 'ml' ? '#ffe600' : (data.type === 'shopee' ? '#ee4d2d' : '#94a3b8');
-            log.innerHTML = `<div><span style="color:${color}; font-weight:bold;">[${data.type.toUpperCase()}]</span> ${data.display.toString().substring(0, 22)}</div><button class="hist-del" onclick="app.session.removePackage('${rawCode}')">X</button>`;
+            const manualBadge = data.manual ? ' ✏️' : '';
+            const safeRawCode = rawCode.replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+            log.innerHTML = `<div><span style="color:${color}; font-weight:bold;">[${data.type.toUpperCase()}]</span> ${data.display.toString().substring(0, 22)}${manualBadge}</div><button class="hist-del" onclick="app.session.removePackage('${safeRawCode}')">X</button>`;
             list.appendChild(log);
         });
     }
@@ -228,11 +298,6 @@ class Session {
         const item = this.codesMap.get(code);
         if (!item) return;
         this.counts[item.type]--; this.counts.total--; this.codesMap.delete(code); this.updateUI();
-        
-        // Se deletou o único item e zerou, destrava a expectativa
-        if (this.counts.total === 0) {
-            document.getElementById('inputExpected').disabled = false;
-        }
     }
 
     clearAll() { 
@@ -240,11 +305,17 @@ class Session {
             this.counts = { ml: 0, shopee: 0, avulso: 0, total: 0 }; 
             this.codesMap.clear(); 
             this.updateUI(); 
-            document.getElementById('inputExpected').disabled = false; // Destrava
         } 
     }
     
-    addPhoto(b64) { if (this.photos.length < 8) { this.photos.push(b64); this.parent.ui.renderPhotos(); this.saveBackup(); } }
+    addPhoto(b64, label = null) {
+        if (this.photos.length < 8) {
+            const item = label ? { src: b64, label: label } : b64;
+            this.photos.push(item);
+            this.parent.ui.renderPhotos();
+            this.saveBackup();
+        }
+    }
     removePhoto(index) { this.photos.splice(index, 1); this.parent.ui.renderPhotos(); this.saveBackup(); }
     clearPhotos() { if (confirm("Apagar fotos?")) { this.photos = []; this.parent.ui.renderPhotos(); this.saveBackup(); } }
 }
@@ -263,14 +334,12 @@ class Scanner {
         this.detector = null;
 
         if (this.useNative) {
-            // Suporta QR codes + códigos de barras 1D (para MLB e outros)
             const formats = ['qr_code', 'code_128', 'ean_13', 'code_39', 'ean_8', 'itf'];
             BarcodeDetector.getSupportedFormats().then(supported => {
                 const active = formats.filter(f => supported.includes(f));
                 this.detector = new BarcodeDetector({ formats: active });
                 console.log('📷 Scanner: BarcodeDetector nativo ativo | Formatos:', active.join(', '));
             }).catch(() => {
-                // Fallback caso getSupportedFormats falhe
                 this.detector = new BarcodeDetector({ formats: ['qr_code'] });
                 console.log('📷 Scanner: BarcodeDetector nativo ativo (apenas QR)');
             });
@@ -310,25 +379,33 @@ class Scanner {
     flash(type) { const el = document.getElementById('scanFlash'); el.className = 'scan-flash'; void el.offsetWidth; el.className = 'scan-flash ' + type; }
     showBeepVisual(type) { const el = document.getElementById('beepEl'); el.className = 'beep-ind beep-' + type; el.textContent = type === 'ml' ? '🟡' : (type === 'shopee' ? '🔴' : '⚪'); void el.offsetWidth; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 500); }
 
+    showDupAlert() {
+        const container = document.getElementById('camContainer');
+        // Remove alerta anterior se existir
+        const existing = container.querySelector('.dup-alert');
+        if (existing) existing.remove();
+        const el = document.createElement('div');
+        el.className = 'dup-alert';
+        el.textContent = 'DUPLICADO';
+        container.appendChild(el);
+        setTimeout(() => el.remove(), 500);
+    }
+
     async scan() {
         if (!this.scanning) return;
 
         if (this.parent.ui.currentTab === 0 && this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
             let detected = null;
 
-            // Tenta BarcodeDetector nativo primeiro (hardware-accelerated)
             if (this.useNative && this.detector) {
                 try {
                     const barcodes = await this.detector.detect(this.video);
                     if (barcodes.length > 0) {
                         detected = barcodes[0].rawValue;
                     }
-                } catch (e) {
-                    // Se o nativo falhar neste frame, tenta jsQR como fallback
-                }
+                } catch (e) {}
             }
 
-            // Fallback para jsQR se BarcodeDetector não encontrou nada ou não é suportado
             if (!detected && typeof jsQR !== 'undefined') {
                 this.canvas.height = this.video.videoHeight;
                 this.canvas.width = this.video.videoWidth;
@@ -353,7 +430,13 @@ class CollageBuilder {
     async build(session) {
         const sources = [];
         if (session.selfie) sources.push({ src: session.selfie, label: '👤 ' + session.operator });
-        session.photos.forEach((s, i) => sources.push({ src: s, label: 'Foto ' + (i + 1) }));
+        session.photos.forEach((item, i) => {
+            if (typeof item === 'string') {
+                sources.push({ src: item, label: 'Foto ' + (i + 1) });
+            } else {
+                sources.push({ src: item.src, label: item.label || 'Foto ' + (i + 1) });
+            }
+        });
         if (!sources.length) return null;
         
         const load = src => new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = src; });
@@ -380,8 +463,12 @@ class CollageBuilder {
             const dw = img.naturalWidth * ratio, dh = img.naturalHeight * ratio, dx = x + (CELL - dw) / 2, dy = y + (CELL - dh) / 2;
             ctx.save(); ctx.beginPath(); ctx.rect(x, y, CELL, CELL); ctx.clip(); ctx.drawImage(img, dx, dy, dw, dh); ctx.restore();
             
-            ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x, y + CELL - 40, CELL, 40);
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 20px monospace'; ctx.fillText(label, x + 12, y + CELL - 14);
+            // Label de evidência em vermelho, demais em branco
+            const isEvidence = label.startsWith('Evidência:');
+            ctx.fillStyle = isEvidence ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.6)';
+            ctx.fillRect(x, y + CELL - 40, CELL, 40);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 20px monospace';
+            ctx.fillText(label.substring(0, 28), x + 12, y + CELL - 14);
         });
         
         return new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95)); 
@@ -416,54 +503,61 @@ class ExportController {
 
     getSummary() {
         const s = this.parent.session;
-        return `📦 SAÍDA FLEX VELOZZ\n--------------------------\nOp: ${s.operator}\nEntregador: ${s.driver}\nDuração: ${this.getDuration()}\n--------------------------\n🟡 ML: ${s.counts.ml}\n🔴 Shopee: ${s.counts.shopee}\n⚪ Avulso: ${s.counts.avulso}\n*TOTAL: ${s.counts.total} pacotes*`;
+        return `📦 SAÍDA FLEX VELOZZ\n--------------------------\nOp: ${s.operator}\nEntregador: ${s.driver}\nDuração: ${this.getDuration()}\n--------------------------\n🟡 ML: ${s.counts.ml}/${s.expected.ml}\n🔴 Shopee: ${s.counts.shopee}/${s.expected.shopee}\n⚪ Avulso: ${s.counts.avulso}/${s.expected.avulso}\n*TOTAL: ${s.counts.total}/${s.expected.total} pacotes*`;
     }
 
     blobToBase64(blob) { return new Promise(res => { const r = new FileReader(); r.onloadend = () => res(r.result); r.readAsDataURL(blob); }); }
 
+    // Verifica divergência por marketplace
+    checkDivergence() {
+        const s = this.parent.session;
+        const divergences = [];
+        if (s.counts.ml !== s.expected.ml) divergences.push({ name: 'ML', color: '#ffe600', expected: s.expected.ml, read: s.counts.ml });
+        if (s.counts.shopee !== s.expected.shopee) divergences.push({ name: 'Shopee', color: '#ee4d2d', expected: s.expected.shopee, read: s.counts.shopee });
+        if (s.counts.avulso !== s.expected.avulso) divergences.push({ name: 'Avulso', color: '#94a3b8', expected: s.expected.avulso, read: s.counts.avulso });
+        return divergences;
+    }
+
     async toWhatsApp() {
-        const expectedStr = document.getElementById('inputExpected').value;
-        const expected = parseInt(expectedStr);
-        const scanned = this.parent.session.counts.total;
-
-        if (scanned === 0 && this.parent.session.photos.length === 0) return alert("Nada para exportar!");
+        const s = this.parent.session;
+        if (s.counts.total === 0 && s.photos.length === 0) return alert("Nada para exportar!");
         
-        // Embora já tenhamos travado lá no scanner, esta é uma redundância de segurança.
-        if (expectedStr === "" || isNaN(expected) || expected <= 0) {
-            app.ui.goToTab(0);
-            document.getElementById('inputExpected').focus();
-            return alert("Obrigatório: Preencha a Expectativa de pacotes na primeira aba antes de finalizar.");
-        }
-
-        if (scanned !== expected) {
-            document.getElementById('divergenceText').innerHTML = `Expectativa: <b>${expected}</b> | Lidos: <b>${scanned}</b>`;
+        const divergences = this.checkDivergence();
+        
+        if (divergences.length > 0) {
+            // Monta tabela de divergência visual
+            let html = '<table style="width:100%; font-size:14px; border-collapse:collapse; margin-bottom:5px;">';
+            html += '<tr style="color:#6b7280;"><th style="text-align:left; padding:4px;">Marketplace</th><th style="padding:4px;">Esperado</th><th style="padding:4px;">Lido</th></tr>';
+            divergences.forEach(d => {
+                html += `<tr><td style="color:${d.color}; font-weight:bold; padding:4px;">${d.name}</td><td style="text-align:center; padding:4px;">${d.expected}</td><td style="text-align:center; padding:4px; color:var(--danger); font-weight:bold;">${d.read}</td></tr>`;
+            });
+            html += '</table>';
+            
+            const totalLine = `<div style="text-align:center; margin-top:8px; font-weight:bold;">Total: <span style="color:var(--danger);">${s.counts.total}</span> / ${s.expected.total}</div>`;
+            
+            document.getElementById('divergenceText').innerHTML = html + totalLine;
             document.getElementById('modalDivergence').classList.remove('hidden');
             return;
         }
         
+        // Sem divergência → segue direto
         this.confirmAndSend();
+    }
+
+    // Revisar — fecha modal e volta ao scanner
+    reviewDivergence() {
+        document.getElementById('modalDivergence').classList.add('hidden');
+        this.parent.ui.goToTab(0);
+    }
+
+    // Cancelar — reseta tudo para o login
+    cancelDivergence() {
+        document.getElementById('modalDivergence').classList.add('hidden');
+        this.parent.session.forceReset();
     }
 
     async confirmAndSend() {
         const s = this.parent.session;
-        const expected = parseInt(document.getElementById('inputExpected').value);
-        let finalReason = "S/ Divergência";
-
-        if (s.counts.total !== expected) {
-            const reason = document.getElementById('selReason').value;
-            
-            // INTERCEPTAÇÃO: Se o motivo for "Digitei errado", cancela envio e reseta
-            if (reason === "Digitei expectativa errada") {
-                alert("🔄 A conferência atual foi reiniciada. Por favor, insira a expectativa correta e bip os pacotes novamente.");
-                document.getElementById('modalDivergence').classList.add('hidden');
-                s.reset(); // Força o reset sem popup de confirmação extra
-                return;
-            }
-
-            const otherText = document.getElementById('txtOtherReason').value;
-            if (reason === "Outros" && otherText.trim().length < 5) return alert("Descreva o motivo detalhadamente.");
-            finalReason = reason === "Outros" ? otherText : reason;
-        }
 
         document.getElementById('modalDivergence').classList.add('hidden');
         
@@ -480,7 +574,8 @@ class ExportController {
                 duration: this.getDuration(),
                 operator: s.operator, driver: s.driver,
                 ml: s.counts.ml, shopee: s.counts.shopee, avulso: s.counts.avulso, total: s.counts.total,
-                expected: expected, justification: finalReason,
+                expectedML: s.expected.ml, expectedShopee: s.expected.shopee, expectedAvulso: s.expected.avulso,
+                expected: s.expected.total, justification: "S/ Divergência",
                 valML: s.counts.ml * 8, valShopee: s.counts.shopee * 5, valAvulso: s.counts.avulso * 8,
                 valTotal: (s.counts.ml * 8) + (s.counts.shopee * 5) + (s.counts.avulso * 8),
                 codes: Array.from(s.codesMap.values()).map(item => item.display).join(" | "),
@@ -492,12 +587,12 @@ class ExportController {
             if (navigator.canShare && blob) {
                 const f = new File([blob], 'saida.jpg', { type: 'image/jpeg' });
                 await navigator.share({ title: 'Saída Velozz', text: this.getSummary().replace(/📦/g, '*📦*'), files: [f] });
-                s.reset();
+                s.forceReset();
             } else {
                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(this.getSummary())}`);
-                s.reset();
+                s.forceReset();
             }
-        } catch (e) { s.reset(); } finally { btn.textContent = oldText; btn.disabled = false; }
+        } catch (e) { s.forceReset(); } finally { btn.textContent = oldText; btn.disabled = false; }
     }
 
     async sendToSheetsBackground(p) { if (!navigator.onLine) return this.saveToQueue(p); try { await fetch(this.sheetsUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(p) }); } catch (e) { this.saveToQueue(p); } }
@@ -515,7 +610,7 @@ class ExportController {
 const app = { ui: new UIController(), registry: new Registry(), session: null, scanner: null, collage: new CollageBuilder(), audio: new AudioController(), export: null };
 app.session = new Session(app); app.scanner = new Scanner(app); app.export = new ExportController(app);
 
-// COMPRESSOR DE IMAGENS - Reduz o tamanho da foto sem perder qualidade visual na colagem
+// COMPRESSOR DE IMAGENS
 const compressImage = (file, callback) => {
     const reader = new FileReader();
     reader.onload = e => {
@@ -549,5 +644,18 @@ document.getElementById('inputSelfie').onchange = e => {
 document.getElementById('inputPhoto').onchange = e => {
     Array.from(e.target.files).forEach(f => {
         compressImage(f, b64 => app.session.addPhoto(b64));
+    });
+};
+
+// Handler para foto de evidência manual
+document.getElementById('inputManualPhoto').onchange = e => {
+    if (!e.target.files.length) {
+        // Se o usuário cancelou a câmera, cancela a inserção manual
+        app.session._pendingManualCode = null;
+        app.session._pendingManualType = null;
+        return;
+    }
+    compressImage(e.target.files[0], b64 => {
+        app.session.completeManualEntry(b64);
     });
 };

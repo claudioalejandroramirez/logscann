@@ -48,7 +48,7 @@ Antes do LogScann, o fluxo era totalmente manual:
 
 O LogScann automatiza esse fluxo:
 
-- 📷 **Scanner QR Code** via câmera do celular (usando a biblioteca [jsQR](https://github.com/nicolestandifer3/jsqr)) para classificar pacotes automaticamente por marketplace.
+- 📷 **Scanner de códigos** via câmera do celular usando a API nativa [`BarcodeDetector`](https://developer.mozilla.org/en-US/docs/Web/API/BarcodeDetector) (hardware-accelerated) com fallback para [jsQR](https://github.com/nicolestandifer3/jsqr). Classifica pacotes automaticamente por marketplace, suportando QR codes e códigos de barras 1D.
 - 📊 **Integração com Google Sheets** para registro e cálculo automático de comissões.
 - 🖼️ **Compilação de evidências em imagem** (collage com selfie do operador + fotos das telas do entregador).
 - 📲 **Compartilhamento via WhatsApp** com resumo + imagem compilada para notificação do RH.
@@ -59,7 +59,7 @@ O LogScann automatiza esse fluxo:
 
 | Funcionalidade | Descrição |
 |---|---|
-| 📷 **Scanner QR Code** | Lê QR codes dos pacotes via câmera traseira e classifica automaticamente como ML, Shopee ou Avulso |
+| 📷 **Scanner nativo** | Lê QR codes e códigos de barras 1D via `BarcodeDetector` (hardware) com fallback `jsQR`. Câmera 1920×1080. Classifica como ML, Shopee ou Avulso |
 | 🔦 **Lanterna** | Controle de flash para leitura em ambientes escuros |
 | 📦 **Expectativa de pacotes** | Campo obrigatório que trava após o primeiro bipe para garantir integridade da conferência |
 | ⚠️ **Detecção de divergência** | Compara pacotes lidos × esperados e exige justificativa em caso de diferença |
@@ -89,10 +89,12 @@ Frontend                    Backend / Integração
 ├── HTML5                   ├── Google Apps Script (Code.gs)
 ├── CSS3 (responsivo)       ├── Google Sheets (planilha)
 ├── JavaScript ES6+         └── Google Drive (armazenamento de imagens)
-└── jsQR (scanner QR)
-                            Infraestrutura
-PWA                         ├── GitHub Pages (hospedagem)
-├── manifest.json           └── localStorage (persistência local)
+├── BarcodeDetector API
+│   (nativo, hardware)      Infraestrutura
+└── jsQR (fallback)         ├── GitHub Pages (hospedagem)
+                            └── localStorage (persistência local)
+PWA
+├── manifest.json
 └── sw.js (Service Worker)
 ```
 

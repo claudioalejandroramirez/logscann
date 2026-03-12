@@ -67,7 +67,10 @@
       <div class="tab-link" onclick="app.ui.goToTab(2)">🖼️ Fotos</div>
       <div class="tab-link" onclick="app.ui.goToTab(3)">📤 Exportar</div>
     </div>
+
     <div id="swipeContainer" style="padding: 0 10px; flex: 1; overflow-y: auto;">
+
+      <!-- ABA 0: SCANNER -->
       <div class="page active" id="page-0">
         <div class="card"
           style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 10px;">
@@ -79,38 +82,104 @@
             style="width: auto; padding: 5px 15px; background: var(--surface); border: 1px solid var(--danger); color: var(--danger);"
             onclick="app.session.reset(true)">CANCELAR</button>
         </div>
+
         <div class="stats-grid">
-          <div class="stat-item ml" id="box-ml">ML<br /><b id="countML" style="font-size: 22px; color: #ffe600">0</b>
+          <div class="stat-item ml" id="box-ml">
+            ML<br /><b id="countML" style="font-size: 22px; color: #ffe600">0</b>
+            <span id="expML" class="exp-label"></span>
           </div>
-          <div class="stat-item shopee" id="box-shopee">SHOPEE<br /><b id="countShopee"
-              style="font-size: 22px; color: #ee4d2d">0</b></div>
-          <div class="stat-item avulso" id="box-avulso">AVULSO<br /><b id="countAvulso"
-              style="font-size: 22px; color: #94a3b8">0</b></div>
+          <div class="stat-item shopee" id="box-shopee">
+            SHOPEE<br /><b id="countShopee" style="font-size: 22px; color: #ee4d2d">0</b>
+            <span id="expShopee" class="exp-label"></span>
+          </div>
+          <div class="stat-item avulso" id="box-avulso">
+            AVULSO<br /><b id="countAvulso" style="font-size: 22px; color: #94a3b8">0</b>
+            <span id="expAvulso" class="exp-label"></span>
+          </div>
         </div>
+
         <div class="cam-container" id="camContainer">
           <video id="camVideo" autoplay playsinline muted></video>
           <div class="scanner-laser"></div>
+          <div class="scan-flash" id="scanFlash"></div>
+          <button class="btn-flash" id="btnFlash" onclick="app.scanner.toggleFlashlight()">🔦</button>
           <canvas id="qrCanvas" class="hidden"></canvas>
         </div>
+
+        <div class="card" style="padding: 10px; margin-top: 10px">
+          <label style="font-size: 12px; color: #6b7280; text-transform: uppercase">✏️ Inserção manual:</label>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <select id="selManualType" style="width: auto; min-width: 90px; margin: 0; font-size: 14px; padding: 10px">
+              <option value="ml">ML</option>
+              <option value="shopee">Shopee</option>
+              <option value="avulso">Avulso</option>
+            </select>
+            <input type="text" id="inputManualCode" placeholder="ID do pacote..." style="margin: 0; flex: 1" />
+            <button class="btn btn-pr" style="width: auto; padding: 10px 15px; margin: 0"
+              onclick="app.session.manualEntry()">+</button>
+          </div>
+          <input type="file" id="inputManualPhoto" accept="image/*" capture="environment" class="hidden" />
+        </div>
+
         <button class="btn btn-sec" style="margin-top: 20px" onclick="app.ui.nextTab()">PRÓXIMO ➔</button>
       </div>
+
+      <!-- ABA 1: HISTÓRICO -->
       <div class="page" id="page-1">
-        <div id="historyList" class="history-list"></div><button class="btn btn-sec" onclick="app.ui.nextTab()">PRÓXIMO
-          ➔</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h4 style="color: #6b7280; font-size: 12px; text-transform: uppercase">Pacotes Lidos (<span
+              id="countTotal">0</span>)</h4>
+          <button style="background: none; border: none; color: var(--danger); font-size: 12px; cursor: pointer;"
+            onclick="app.session.clearAll()">Limpar Tudo</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+        <button class="btn btn-sec" style="margin-top: 20px" onclick="app.ui.nextTab()">PRÓXIMO ➔</button>
       </div>
+
+      <!-- ABA 2: FOTOS -->
       <div class="page" id="page-2">
-        <div class="photos-grid" id="photosGrid"></div><button class="btn btn-sec"
-          onclick="document.getElementById('inputPhoto').click()">📸 ADICIONAR FOTO</button><input type="file"
-          id="inputPhoto" accept="image/*" capture="environment" multiple class="hidden" /><button class="btn btn-sec"
-          onclick="app.ui.nextTab()">PRÓXIMO ➔</button>
+        <h4 style="color: #6b7280; font-size: 12px; text-transform: uppercase; margin-bottom: 10px">Documentação (<span
+            id="photoCountText">0</span>/8)</h4>
+        <div class="photos-grid" id="photosGrid"></div>
+        <input type="file" id="inputPhoto" accept="image/*" capture="environment" multiple class="hidden" />
+        <button class="btn btn-sec" style="background: #2a3040; color: #fff"
+          onclick="document.getElementById('inputPhoto').click()">📸 ADICIONAR FOTO</button>
+        <button class="btn btn-danger hidden" id="btnClearPhotos" onclick="app.session.clearPhotos()">🗑️ REMOVER
+          FOTOS</button>
+        <button class="btn btn-sec" style="margin-top: 20px" onclick="app.ui.nextTab()">PRÓXIMO ➔</button>
       </div>
+
+      <!-- ABA 3: EXPORTAR -->
       <div class="page" id="page-3">
-        <div id="exportSummary" class="summary-box"></div><button class="btn btn-wa"
-          onclick="app.export.toWhatsApp()">📲 COMPARTILHAR E FINALIZAR</button>
+        <h4 style="color: #6b7280; font-size: 12px; text-transform: uppercase; margin-bottom: 10px">Resumo da Sessão
+        </h4>
+        <div id="exportSummary" class="summary-box">Nenhum dado ainda.</div>
+        <div style="margin-top: 20px">
+          <button class="btn btn-wa" onclick="app.export.toWhatsApp()">📲 COMPARTILHAR E FINALIZAR</button>
+          <button class="btn btn-sec hidden" id="btnSync"
+            style="background: #2a3040; color: var(--accent); border: 1px solid var(--accent)"
+            onclick="app.export.syncQueue()">🔄 SINCRONIZAR PENDENTES (0)</button>
+        </div>
       </div>
+
     </div>
   </div>
 
+  <!-- MODAL DIVERGÊNCIA -->
+  <div id="modalDivergence" class="overlay hidden"
+    style="background: rgba(0,0,0,0.95); justify-content: center; align-items: center; z-index: 2000;">
+    <div class="card" style="width: 100%; max-width: 400px; border-color: var(--danger)">
+      <h3 style="color: var(--danger); margin-bottom: 15px; text-align: center">⚠️ DIVERGÊNCIA DETECTADA</h3>
+      <div id="divergenceText"
+        style="font-size: 14px; margin-bottom: 15px; background: #000; padding: 12px; border-radius: 8px;"></div>
+      <button class="btn btn-pr" style="margin-top: 10px; background: var(--accent); color: #000"
+        onclick="app.export.reviewDivergence()">🔍 REVISAR CONFERÊNCIA</button>
+      <button class="btn btn-danger" style="margin-top: 8px" onclick="app.export.cancelDivergence()">❌ CANCELAR
+        CONFERÊNCIA</button>
+    </div>
+  </div>
+
+  <!-- PAINEL ADMIN -->
   <div id="adminOverlay" class="overlay hidden" style="z-index: 2000;">
     <h2 style="text-align: center; color: var(--accent); margin-bottom: 20px">ADMINISTRAÇÃO</h2>
     <div id="adminLoginCard" class="card" style="text-align: center;">
@@ -143,6 +212,8 @@
     </div>
   </div>
 
+  <!-- ELEMENTOS AUXILIARES -->
+  <div class="beep-ind" id="beepEl"></div>
   <canvas id="collageCanvas" style="display: none"></canvas>
 
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>

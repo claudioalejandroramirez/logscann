@@ -36,13 +36,19 @@ class Scanner {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          advanced: [{ focusMode: 'continuous' }],
+          width: { ideal: 1280 },   // Changed from 1920 to 1280 for better processing speed
+          height: { ideal: 720 },   // Changed from 1080 to 720 for better processing speed
         },
       });
       this.video.srcObject = stream;
       this.track = stream.getVideoTracks()[0];
+      
+      // Try applying continuous focus mode after stream initialization (better support on some devices)
+      try {
+        await this.track.applyConstraints({
+          advanced: [{ focusMode: 'continuous' }]
+        });
+      } catch(e) { console.log('Continuous focus not supported', e); }
       this.scanning = true;
       this.scan();
     } catch (e) {
@@ -91,7 +97,7 @@ class Scanner {
     el.className = 'dup-alert';
     el.textContent = 'DUPLICADO';
     container.appendChild(el);
-    setTimeout(() => el.remove(), 500);
+    setTimeout(() => el.remove(), 1000);
   }
 
   async scan() {
@@ -115,7 +121,7 @@ class Scanner {
         this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
         const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'dontInvert',
+          inversionAttempts: 'attemptBoth',
         });
         if (code && code.data) detected = code.data;
       }

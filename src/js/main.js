@@ -1,3 +1,8 @@
+/**
+ * MOTOR DE OPERAÇÃO - FLEX VELOZZ
+ * Versão: 8.0 - Painel Admin Integrado
+ */
+
 const app = {
   ui: new UIController(),
   registry: new Registry(),
@@ -6,13 +11,13 @@ const app = {
   collage: new CollageBuilder(),
   audio: new AudioController(),
   export: null,
-  admin: null // Adicionado
+  admin: null
 };
 
 app.session = new Session(app);
 app.scanner = new Scanner(app);
 app.export = new ExportController(app);
-app.admin = new AdminController(app); // Inicializado aqui
+app.admin = new AdminController(app);
 
 // COMPRESSOR DE IMAGENS
 const compressImage = (file, callback) => {
@@ -38,7 +43,7 @@ const compressImage = (file, callback) => {
   reader.readAsDataURL(file);
 };
 
-// Eventos de Input
+// Selfie do operador
 document.getElementById('inputSelfie').onchange = (e) => {
   if (!e.target.files.length) return;
   compressImage(e.target.files[0], (b64) => {
@@ -50,8 +55,19 @@ document.getElementById('inputSelfie').onchange = (e) => {
   });
 };
 
+// Fotos de evidência da aba Fotos
 document.getElementById('inputPhoto').onchange = (e) => {
   Array.from(e.target.files).forEach((f) => {
     compressImage(f, (b64) => app.session.addPhoto(b64));
   });
+};
+
+// Foto obrigatória da inserção manual — completa o registro do pacote
+document.getElementById('inputManualPhoto').onchange = (e) => {
+  if (!e.target.files.length) return;
+  compressImage(e.target.files[0], (b64) => {
+    app.session.completeManualEntry(b64);
+  });
+  // Limpa o input para permitir nova captura do mesmo pacote se necessário
+  e.target.value = '';
 };

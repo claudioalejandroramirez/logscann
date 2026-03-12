@@ -1,5 +1,5 @@
 /**
- * Registry - Gerencia listas de pessoal com suporte a LocalStorage e Fallback
+ * Registry - Gerencia listas de pessoal com LocalStorage
  */
 class Registry {
   constructor() {
@@ -9,15 +9,13 @@ class Registry {
   }
 
   loadData() {
-    // Tenta carregar do armazenamento do navegador
     const localOps = localStorage.getItem('velozz_operators');
     const localDrivers = localStorage.getItem('velozz_drivers');
 
-    // Se não existir nada salvo, usa o que está no config.js (APP_CONFIG)
+    // Se estiver vazio, tenta carregar do config.js (APP_CONFIG)
     this.operadores = localOps ? JSON.parse(localOps) : (typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.operadores : []);
     this.entregadores = localDrivers ? JSON.parse(localDrivers) : (typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.entregadores : []);
 
-    // Salva para garantir que o localStorage esteja populado
     this.saveData();
   }
 
@@ -36,7 +34,6 @@ class Registry {
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = '<option value="">Selecionar...</option>';
-    // Ordena alfabeticamente para facilitar a busca
     [...list].sort().forEach((item) => {
       const opt = document.createElement('option');
       opt.value = item;
@@ -45,7 +42,6 @@ class Registry {
     });
   }
 
-  // Métodos de alteração
   addOperator(name) {
     if (name && !this.operadores.includes(name)) {
       this.operadores.push(name);
@@ -70,7 +66,6 @@ class Registry {
     this.saveData();
   }
 
-  // Busca dados atualizados do Google Sheets
   async syncFromSheets(url) {
     try {
       const resp = await fetch(`${url}?action=getRegistry`);

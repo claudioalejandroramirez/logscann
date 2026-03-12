@@ -9,19 +9,16 @@ class AdminController {
     }
 
     bindEvents() {
-        // Abrir o modal pelo ícone de engrenagem
         const btnOpen = document.getElementById('btnOpenAdmin');
         if (btnOpen) btnOpen.onclick = () => this.openModal();
 
-        // Botão de login
-        document.getElementById('btnVerifyPin').onclick = () => this.verifyPin();
+        const btnVerify = document.getElementById('btnVerifyPin');
+        if (btnVerify) btnVerify.onclick = () => this.verifyPin();
 
-        // Atalho Enter no PIN
         document.getElementById('adminPin').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.verifyPin();
         });
 
-        // Cadastro de Operador
         document.getElementById('btnAddOperator').onclick = () => {
             const input = document.getElementById('newOperatorName');
             const name = input.value.trim().toUpperCase();
@@ -32,7 +29,6 @@ class AdminController {
             }
         };
 
-        // Cadastro de Entregador
         document.getElementById('btnAddDriver').onclick = () => {
             const input = document.getElementById('newDriverName');
             const name = input.value.trim().toUpperCase();
@@ -43,7 +39,6 @@ class AdminController {
             }
         };
 
-        // Sincronização com Google Sheets (Opcional)
         document.getElementById('btnSyncAdmin').onclick = async () => {
             const btn = document.getElementById('btnSyncAdmin');
             const originalText = btn.textContent;
@@ -52,7 +47,7 @@ class AdminController {
 
             const success = await this.parent.registry.syncFromSheets(this.parent.export.sheetsUrl);
 
-            btn.textContent = success ? "✅ SUCESSO" : "❌ ERRO (OFFLINE?)";
+            btn.textContent = success ? "✅ SUCESSO" : "❌ ERRO";
             btn.disabled = false;
 
             setTimeout(() => btn.textContent = originalText, 3000);

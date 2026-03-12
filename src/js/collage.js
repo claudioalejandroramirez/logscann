@@ -40,18 +40,12 @@ class CollageBuilder {
     const divAvulso = counts.avulso !== exp.avulso;
     const hasDivergence = divML || divShopee || divAvulso;
 
-    // Valores financeiros
-    const valML = counts.ml * 8;
-    const valShopee = counts.shopee * 5;
-    const valAvulso = counts.avulso * 8;
-    const valTotal = valML + valShopee + valAvulso;
-
     // Layout
     const COLS = Math.min(imgs.length, 3);
     const ROWS = Math.ceil(imgs.length / COLS);
-    const CELL = 480;
-    const PAD = 12;
-    const HDR = 310; // cabeçalho expandido para caber o resumo
+    const CELL = 900;
+    const PAD = 16;
+    const HDR = 280; // cabeçalho expandido para caber o resumo
 
     const W = COLS * CELL + (COLS + 1) * PAD;
     const H = HDR + ROWS * CELL + (ROWS + 1) * PAD;
@@ -75,42 +69,41 @@ class CollageBuilder {
 
     // ── Título ──────────────────────────────────────────
     ctx.fillStyle = '#f97316';
-    ctx.font = 'bold 34px monospace';
-    ctx.fillText('SAÍDA FLEX VELOZZ', PAD + 10, 44);
+    ctx.font = 'bold 52px monospace';
+    ctx.fillText('SAÍDA FLEX VELOZZ', PAD + 10, 56);
 
     // ── Dados do operador / entregador / data ───────────
     ctx.fillStyle = '#e8eaf0';
-    ctx.font = '22px monospace';
-    ctx.fillText(`Entregador: ${session.driver}`, PAD + 10, 78);
+    ctx.font = '34px monospace';
+    ctx.fillText(`Entregador: ${session.driver}`, PAD + 10, 100);
     ctx.fillStyle = '#9ca3af';
-    ctx.font = '19px monospace';
-    ctx.fillText(`Operador: ${session.operator}`, PAD + 10, 104);
+    ctx.font = '28px monospace';
+    ctx.fillText(`Operador: ${session.operator}`, PAD + 10, 136);
     ctx.fillText(
       `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR')}  |  Duração: ${dur}`,
-      PAD + 10, 128
+      PAD + 10, 168
     );
 
     // ── Linha divisória interna ──────────────────────────
     ctx.strokeStyle = '#2e3440';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(PAD + 10, 142);
-    ctx.lineTo(W - PAD - 10, 142);
+    ctx.moveTo(PAD + 10, 182);
+    ctx.lineTo(W - PAD - 10, 182);
     ctx.stroke();
 
     // ── Tabela de contagens ──────────────────────────────
     const tableX = PAD + 10;
-    let tableY = 168;
-    const colW = Math.floor((W - PAD * 2 - 20) / 4);
+    let tableY = 212;
+    const colW = Math.floor((W - PAD * 2 - 20) / 3);
 
     // Cabeçalho da tabela
     ctx.fillStyle = '#6b7280';
-    ctx.font = 'bold 17px monospace';
+    ctx.font = 'bold 24px monospace';
     ctx.fillText('MARKETPLACE', tableX, tableY);
     ctx.fillText('LIDO', tableX + colW * 1, tableY);
     ctx.fillText('ESPERADO', tableX + colW * 2, tableY);
-    ctx.fillText('VALOR', tableX + colW * 3, tableY);
-    tableY += 6;
+    tableY += 8;
 
     ctx.strokeStyle = '#2e3440';
     ctx.lineWidth = 1;
@@ -118,33 +111,29 @@ class CollageBuilder {
     ctx.moveTo(tableX, tableY);
     ctx.lineTo(W - PAD - 10, tableY);
     ctx.stroke();
-    tableY += 22;
+    tableY += 28;
 
     // Linhas de dados
     const rows = [
-      { label: '🟡 ML', color: '#ffe600', lido: counts.ml, esp: exp.ml, val: valML, div: divML },
-      { label: '🔴 Shopee', color: '#ee4d2d', lido: counts.shopee, esp: exp.shopee, val: valShopee, div: divShopee },
-      { label: '⚪ Avulso', color: '#94a3b8', lido: counts.avulso, esp: exp.avulso, val: valAvulso, div: divAvulso },
+      { label: '🟡 ML', color: '#ffe600', lido: counts.ml, esp: exp.ml, div: divML },
+      { label: '🔴 Shopee', color: '#ee4d2d', lido: counts.shopee, esp: exp.shopee, div: divShopee },
+      { label: '⚪ Avulso', color: '#94a3b8', lido: counts.avulso, esp: exp.avulso, div: divAvulso },
     ];
 
     rows.forEach((row) => {
       ctx.fillStyle = row.color;
-      ctx.font = 'bold 20px monospace';
+      ctx.font = 'bold 28px monospace';
       ctx.fillText(row.label, tableX, tableY);
 
-      // Se divergente, lido em vermelho
       ctx.fillStyle = row.div ? '#ef4444' : '#e8eaf0';
-      ctx.font = row.div ? 'bold 20px monospace' : '20px monospace';
+      ctx.font = row.div ? 'bold 28px monospace' : '28px monospace';
       ctx.fillText(String(row.lido), tableX + colW * 1, tableY);
 
       ctx.fillStyle = '#e8eaf0';
-      ctx.font = '20px monospace';
+      ctx.font = '28px monospace';
       ctx.fillText(String(row.esp), tableX + colW * 2, tableY);
 
-      ctx.fillStyle = '#4ade80';
-      ctx.fillText(`R$ ${row.val.toFixed(2)}`, tableX + colW * 3, tableY);
-
-      tableY += 30;
+      tableY += 38;
     });
 
     // ── Total ────────────────────────────────────────────
@@ -155,30 +144,27 @@ class CollageBuilder {
     ctx.moveTo(tableX, tableY);
     ctx.lineTo(W - PAD - 10, tableY);
     ctx.stroke();
-    tableY += 22;
+    tableY += 28;
 
     ctx.fillStyle = '#f97316';
-    ctx.font = 'bold 22px monospace';
+    ctx.font = 'bold 32px monospace';
     ctx.fillText('TOTAL', tableX, tableY);
 
     ctx.fillStyle = hasDivergence ? '#ef4444' : '#e8eaf0';
-    ctx.font = 'bold 22px monospace';
+    ctx.font = 'bold 32px monospace';
     ctx.fillText(`${counts.total} / ${exp.total}`, tableX + colW * 1, tableY);
 
-    ctx.fillStyle = '#4ade80';
-    ctx.fillText(`R$ ${valTotal.toFixed(2)}`, tableX + colW * 3, tableY);
-
-    // Badge de divergência (se houver)
+    // Badge de divergência
     if (hasDivergence) {
-      const badgeX = W - 200;
-      const badgeY = tableY - 20;
+      const badgeX = W - 320;
+      const badgeY = tableY - 26;
       ctx.fillStyle = 'rgba(239,68,68,0.15)';
       ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY, 185, 30, 6);
+      ctx.roundRect(badgeX, badgeY, 300, 38, 8);
       ctx.fill();
       ctx.fillStyle = '#ef4444';
-      ctx.font = 'bold 16px monospace';
-      ctx.fillText('⚠ COM DIVERGÊNCIA', badgeX + 10, badgeY + 20);
+      ctx.font = 'bold 22px monospace';
+      ctx.fillText('⚠ COM DIVERGÊNCIA', badgeX + 12, badgeY + 26);
     }
 
     // ── Fotos ─────────────────────────────────────────────

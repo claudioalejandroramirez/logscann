@@ -5,7 +5,7 @@ class ExportController {
   constructor(parent) {
     this.parent = parent;
     this.sheetsUrl =
-      'https://script.google.com/macros/s/AKfycbx-NXr74ObTb2v8iDFJ55PCyoGAlcFB8jRF8oPzL6GM0shaoGGhOM_wlffojZuJ6OwL/exec';
+      'https://script.google.com/macros/s/AKfycbwV2_HP5xQ33zse1zpTCIL9KI9OXC7k4ti9lnZuB2fhn9CO8pJ7K5Oy6loLIBf_hFAq/exec';
     this.updateSyncUI();
     window.addEventListener('online', () => this.syncQueue());
     setInterval(() => {

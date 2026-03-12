@@ -14,65 +14,6 @@
 </head>
 
 <body>
-  <div id="loginOverlay" class="overlay">
-    <h2 style="text-align: center; color: var(--accent); margin-bottom: 20px">SAÍDA FLEX VELOZZ</h2>
-    <div class="card">
-      <div class="selfie-box" onclick="document.getElementById('inputSelfie').click()">
-        <img id="previewSelfie" src="" style="display: none" />
-        <span id="selfiePlaceholder" style="font-size: 12px; font-weight: bold">📸 TIRAR SELFIE*</span>
-      </div>
-      <input type="file" id="inputSelfie" accept="image/*" capture="user" class="hidden" />
-
-      <label style="font-size: 12px; color: #6b7280; text-transform: uppercase">Operador:</label>
-      <select id="selOperator"></select>
-
-      <label style="font-size: 12px; color: #6b7280; text-transform: uppercase">Entregador:</label>
-      <select id="selDriver"></select>
-
-      <label
-        style="font-size: 12px; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-top: 10px; display: block;">📦
-        Expectativa por marketplace:</label>
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px">
-        <div>
-          <label style="font-size: 11px; color: #ffe600; font-weight: bold; text-transform: uppercase">ML</label>
-          <input type="number" id="inputExpML" placeholder="0" min="0"
-            style="text-align: center; font-size: 20px; font-weight: bold; color: #ffe600;" />
-        </div>
-        <div>
-          <label style="font-size: 11px; color: #ee4d2d; font-weight: bold; text-transform: uppercase">Shopee</label>
-          <input type="number" id="inputExpShopee" placeholder="0" min="0"
-            style="text-align: center; font-size: 20px; font-weight: bold; color: #ee4d2d;" />
-        </div>
-        <div>
-          <label style="font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase">Avulso</label>
-          <input type="number" id="inputExpAvulso" placeholder="0" min="0"
-            style="text-align: center; font-size: 20px; font-weight: bold; color: #94a3b8;" />
-        </div>
-      </div>
-      <button class="btn btn-pr" id="btnStart" style="margin-top: 15px" onclick="app.session.start()">▶ INICIAR
-        CONFERÊNCIA</button>
-    </div>
-  </div>
-
-  <div id="mainApp" class="hidden" style="height: 100vh; display: flex; flex-direction: column">
-    <div class="tabs-header">
-      <div class="tab-link active" onclick="app.ui.goToTab(0)">📷 Scanner</div>
-      <div class="tab-link" onclick="app.ui.goToTab(1)">📋 Histórico</div>
-      <div class="tab-link" onclick="app.ui.goToTab(2)">🖼️ Fotos</div>
-      <div class="tab-link" onclick="app.ui.goToTab(3)">📤 Exportar</div>
-    </div>
-    <div id="swipeContainer" style="padding: 0 10px; flex: 1; overflow-y: auto;">
-      <div class="page active" id="page-0">
-        <div id="camContainer" class="cam-container">
-          <video id="camVideo" autoplay playsinline muted></video>
-          <div class="scanner-laser"></div>
-          <canvas id="qrCanvas" class="hidden"></canvas>
-        </div>
-        <button class="btn btn-sec" style="margin-top: 20px" onclick="app.ui.nextTab()">PRÓXIMO ➔</button>
-      </div>
-    </div>
-  </div>
-
   <div id="adminOverlay" class="overlay hidden" style="z-index: 2000;">
     <h2 style="text-align: center; color: var(--accent); margin-bottom: 20px">ADMINISTRAÇÃO</h2>
     <div id="adminLoginCard" class="card" style="text-align: center;">
@@ -106,7 +47,10 @@
   </div>
 
   <button id="btnOpenAdmin"
-    style="position: fixed; bottom: 10px; right: 10px; background: none; border: none; font-size: 24px; opacity: 0.2; z-index: 999; cursor: pointer;">⚙️</button>
+    style="position: fixed; bottom: 10px; right: 10px; background: none; border: none; font-size: 24px; opacity: 0.5; z-index: 999; cursor: pointer;">⚙️</button>
+
+  <div class="beep-ind" id="beepEl"></div>
+  <canvas id="collageCanvas" style="display: none"></canvas>
 
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <script src="src/config.js"></script>

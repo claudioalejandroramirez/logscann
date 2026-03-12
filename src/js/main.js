@@ -1,8 +1,3 @@
-/**
- * MOTOR DE OPERAÇÃO - FLEX VELOZZ
- * Versão: 8.0 - Painel Admin Integrado
- */
-
 const app = {
   ui: new UIController(),
   registry: new Registry(),
@@ -11,13 +6,13 @@ const app = {
   collage: new CollageBuilder(),
   audio: new AudioController(),
   export: null,
-  admin: null
+  admin: null // Adicionado
 };
 
 app.session = new Session(app);
 app.scanner = new Scanner(app);
 app.export = new ExportController(app);
-app.admin = new AdminController(app);
+app.admin = new AdminController(app); // Inicializado aqui
 
 // COMPRESSOR DE IMAGENS
 const compressImage = (file, callback) => {

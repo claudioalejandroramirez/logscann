@@ -193,10 +193,10 @@ class CollageBuilder {
       // Label da foto
       const isEvidence = label.startsWith('Evidência:');
       ctx.fillStyle = isEvidence ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.65)';
-      ctx.fillRect(x, y + CELL - 40, CELL, 40);
+      ctx.fillRect(x, y + CELL - 60, CELL, 60);
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 20px monospace';
-      ctx.fillText(label.substring(0, 28), x + 12, y + CELL - 14);
+      ctx.font = 'bold 30px monospace';
+      ctx.fillText(label.substring(0, 28), x + 16, y + CELL - 20);
     });
 
     return new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.95));

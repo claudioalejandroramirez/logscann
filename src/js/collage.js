@@ -45,7 +45,7 @@ class CollageBuilder {
     const ROWS = Math.ceil(imgs.length / COLS);
     const CELL = 900;
     const PAD = 16;
-    const HDR = 280; // cabeçalho expandido para caber o resumo
+    const HDR = 440; // cabeçalho expandido para caber o resumo
 
     const W = COLS * CELL + (COLS + 1) * PAD;
     const H = HDR + ROWS * CELL + (ROWS + 1) * PAD;

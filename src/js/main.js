@@ -1,8 +1,3 @@
-/**
- * MOTOR DE OPERAÇÃO - FLEX VELOZZ
- * Versão: 7.0 - Inicialização e event handlers
- */
-
 const app = {
   ui: new UIController(),
   registry: new Registry(),
@@ -11,10 +6,13 @@ const app = {
   collage: new CollageBuilder(),
   audio: new AudioController(),
   export: null,
+  admin: null // Adicionado
 };
+
 app.session = new Session(app);
 app.scanner = new Scanner(app);
 app.export = new ExportController(app);
+app.admin = new AdminController(app);
 
 // COMPRESSOR DE IMAGENS
 const compressImage = (file, callback) => {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'velozz-flex-v16';
+const CACHE_NAME = 'velozz-flex-v17';
 
 const ASSETS = [
   './',

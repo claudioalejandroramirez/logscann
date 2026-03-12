@@ -1,8 +1,3 @@
-/**
- * MOTOR DE OPERAÇÃO - FLEX VELOZZ
- * Versão: 7.0 - Inicialização e event handlers
- */
-
 const app = {
   ui: new UIController(),
   registry: new Registry(),
@@ -11,10 +6,13 @@ const app = {
   collage: new CollageBuilder(),
   audio: new AudioController(),
   export: null,
+  admin: null // Adicionado
 };
+
 app.session = new Session(app);
 app.scanner = new Scanner(app);
 app.export = new ExportController(app);
+app.admin = new AdminController(app); // Inicializado aqui
 
 // COMPRESSOR DE IMAGENS
 const compressImage = (file, callback) => {
@@ -23,8 +21,7 @@ const compressImage = (file, callback) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      let w = img.width,
-        h = img.height;
+      let w = img.width, h = img.height;
       const maxW = 1200;
       if (w > maxW) {
         h = Math.round((h * maxW) / w);
@@ -41,6 +38,7 @@ const compressImage = (file, callback) => {
   reader.readAsDataURL(file);
 };
 
+// Eventos de Input
 document.getElementById('inputSelfie').onchange = (e) => {
   if (!e.target.files.length) return;
   compressImage(e.target.files[0], (b64) => {
@@ -55,18 +53,5 @@ document.getElementById('inputSelfie').onchange = (e) => {
 document.getElementById('inputPhoto').onchange = (e) => {
   Array.from(e.target.files).forEach((f) => {
     compressImage(f, (b64) => app.session.addPhoto(b64));
-  });
-};
-
-// Handler para foto de evidência manual
-document.getElementById('inputManualPhoto').onchange = (e) => {
-  if (!e.target.files.length) {
-    // Se o usuário cancelou a câmera, cancela a inserção manual
-    app.session._pendingManualCode = null;
-    app.session._pendingManualType = null;
-    return;
-  }
-  compressImage(e.target.files[0], (b64) => {
-    app.session.completeManualEntry(b64);
   });
 };

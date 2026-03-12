@@ -63,10 +63,10 @@ O LogScann automatiza esse fluxo:
 | 📷 **Scanner nativo**           | Lê QR codes e códigos de barras 1D via `BarcodeDetector` (hardware) com fallback `jsQR`. Classifica como ML, Shopee ou Avulso                   |
 | 🔦 **Lanterna**                 | Controle de flash para leitura em ambientes escuros                                                                                              |
 | 📦 **Expectativa de pacotes**   | Campos por marketplace (ML, Shopee, Avulso) preenchidos antes de iniciar a conferência                                                           |
-| ✏️ **Inserção manual**          | Permite registrar pacotes digitando o código manualmente, com foto de evidência obrigatória                                                      |
+| ✏️ **Inserção manual**          | Permite registrar pacotes digitando o código manualmente; foto de evidência obrigatória — registrado no histórico com badge ✏️ e na colagem com label em vermelho |
 | ⚠️ **Detecção de divergência**  | Compara pacotes lidos × esperados por marketplace e bloqueia o envio em caso de diferença, permitindo revisar ou cancelar                        |
 | 🖼️ **Registro de evidências**   | Captura de até 8 fotos das telas dos apps de marketplace do entregador                                                                           |
-| 🧩 **Collage automática**       | Gera imagem compilada com selfie do operador + fotos de evidência + metadados                                                                    |
+| 🧩 **Collage automática**       | Gera imagem de alta resolução (900px/célula) com cabeçalho fixo contendo resumo completo da conferência — impossível editar antes de enviar |
 | 📲 **Compartilhamento**         | Envia resumo + imagem via Web Share API ou link do WhatsApp                                                                                      |
 | 📊 **Google Sheets**            | Registro automático de todos os dados + cálculo de valores por marketplace                                                                       |
 | ☁️ **Upload de imagens**        | Salva a collage no Google Drive com link público na planilha                                                                                     |
@@ -112,7 +112,7 @@ PWA                         └── localStorage (cache offline)
 | `index.html`                         | Interface com 4 abas: Scanner, Histórico, Fotos e Exportar; modal de divergência; painel admin                                       |
 | `src/css/style.css`                  | Estilização responsiva (tema escuro com accent laranja `#f97316`)                                                                    |
 | `src/config.js`                      | URL do Google Apps Script e listas de fallback offline                                                                               |
-| `src/js/main.js`                     | Inicialização do app e instanciação de todas as classes                                                                              |
+| `src/js/main.js`                     | Inicialização do app, instanciação das classes e handlers de input (selfie, fotos e foto de evidência manual)                        |
 | `src/js/ui.js`                       | `UIController` — controle de abas, swipe e renderização de fotos                                                                     |
 | `src/js/registry.js`                 | `Registry` — fonte de verdade no Sheets; CRUD com PIN; cache local via `localStorage`                                                |
 | `src/js/session.js`                  | `Session` — estado da conferência: pacotes, fotos, expectativas, inserção manual                                                     |
@@ -221,6 +221,8 @@ Basta editar o valor de `ADMIN_PIN` nas Propriedades do Script — sem commits, 
 | Funcionalidades core                          | ✅ Testadas e operacionais |
 | Painel administrativo com auth por PIN        | ✅ Implementado            |
 | Cadastro dinâmico sem commits                 | ✅ Implementado            |
+| Inserção manual com foto de evidência         | ✅ Implementado            |
+| Colagem de alta resolução com resumo fixo     | ✅ Implementado            |
 | Testes de latência                            | 🔄 Em andamento            |
 | Testes de concorrência                        | 🔄 Em andamento            |
 
